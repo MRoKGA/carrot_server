@@ -30,8 +30,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER || 'ubuntu' }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/*.jar"
-          target: "/home/ubuntu/deploy_artifacts/"
+          source: "build/libs/*SNAPSHOT.jar"
+          target: "/home/ubuntu/deploy_artifacts/build/libs/"
 
       - name: Swap JAR & restart service
         uses: appleboy/ssh-action@v1.0.3
@@ -43,9 +43,10 @@ jobs:
             set -e
             sudo mkdir -p /opt/carrot
             sudo mkdir -p /home/ubuntu/deploy_artifacts/build/libs
-            echo "Artifacts on EC2:"
-            ls -alh /home/ubuntu/deploy_artifacts/build/libs || true
-            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/build/libs/*.jar | head -n 1)
+            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/build/libs/*SNAPSHOT.jar | head -n 1)
+            if [ -z "$JAR_SRC" ]; then
+              echo "ERROR: boot jar not found"; ls -alh /home/ubuntu/deploy_artifacts/build/libs; exit 1
+            fi
             echo "Using artifact: $JAR_SRC"
             sudo cp "$JAR_SRC" /opt/carrot/app.jar.new
             sudo mv -f /opt/carrot/app.jar.new /opt/carrot/app.jar
