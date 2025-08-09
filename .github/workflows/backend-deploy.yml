@@ -42,8 +42,10 @@ jobs:
           script: |
             set -e
             sudo mkdir -p /opt/carrot
-            sudo mkdir -p /home/ubuntu/deploy_artifacts
-            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/*.jar | head -n 1)
+            sudo mkdir -p /home/ubuntu/deploy_artifacts/build/libs
+            echo "Artifacts on EC2:"
+            ls -alh /home/ubuntu/deploy_artifacts/build/libs || true
+            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/build/libs/*.jar | head -n 1)
             echo "Using artifact: $JAR_SRC"
             sudo cp "$JAR_SRC" /opt/carrot/app.jar.new
             sudo mv -f /opt/carrot/app.jar.new /opt/carrot/app.jar
