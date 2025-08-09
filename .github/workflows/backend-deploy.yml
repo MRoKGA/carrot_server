@@ -2,7 +2,8 @@ name: backend-deploy
 
 on:
   push:
-    branches: [ "main" ]   # main에 푸시될 때 배포. 필요시 브랜치 변경
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -29,7 +30,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER || 'ubuntu' }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/*SNAPSHOT.jar"
+          source: "build/libs/*.jar"
           target: "/home/ubuntu/deploy_artifacts/"
 
       - name: Swap JAR & restart service
@@ -41,12 +42,10 @@ jobs:
           script: |
             set -e
             sudo mkdir -p /opt/carrot
-            # 최신 업로드된 JAR 경로 선택
-            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/*SNAPSHOT.jar | head -n 1)
+            sudo mkdir -p /home/ubuntu/deploy_artifacts
+            JAR_SRC=$(ls -t /home/ubuntu/deploy_artifacts/*.jar | head -n 1)
             echo "Using artifact: $JAR_SRC"
-            # 원자적 교체
             sudo cp "$JAR_SRC" /opt/carrot/app.jar.new
             sudo mv -f /opt/carrot/app.jar.new /opt/carrot/app.jar
-            # 재시작
             sudo systemctl restart carrot
             sudo systemctl status carrot --no-pager || true
