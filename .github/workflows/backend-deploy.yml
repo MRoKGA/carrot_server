@@ -57,7 +57,7 @@ jobs:
         run: |
           echo "⏳ Waiting for server to start..."
           for i in {1..10}; do
-            if curl -sSf http://<EC2_PUBLIC_IP>:8080 > /dev/null; then
+            if curl -sSf http://3.35.219.116:8080 > /dev/null; then
               echo "✅ Server is up!"
               exit 0
             fi
