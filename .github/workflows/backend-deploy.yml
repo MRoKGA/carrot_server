@@ -52,3 +52,14 @@ jobs:
             sudo mv -f /opt/carrot/app.jar.new /opt/carrot/app.jar
             sudo systemctl restart carrot
             sudo systemctl status carrot --no-pager || true
+
+      - name: Health check
+        run: |
+          echo "⏳ Waiting for server to start..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}:8080/login || true)
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "401" ]; then
+            echo "❌ Health check failed with status $STATUS"
+            exit 1
+          fi
+          echo "✅ Server is up! Status: $STATUS"
