@@ -25,14 +25,14 @@ jobs:
     - name: Build with Gradle (skip tests)
       run: ./gradlew clean build -x test
 
-    - name: Copy JAR to EC2 and Restart
+    - name: Copy JAR to EC2 
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "build/libs/*SNAPSHOT.jar"
-        target: "/opt/carrot/app.jar"
+        target: "/opt/carrot/"
 
     - name: Restart Spring Boot on EC2
       uses: appleboy/ssh-action@v0.1.7
@@ -41,6 +41,7 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          sudo mv /opt/carrot/*SNAPSHOT.jar /opt/carrot/app.jar
           sudo systemctl stop carrot
           sudo systemctl start carrot
           sudo systemctl status carrot --no-pager
