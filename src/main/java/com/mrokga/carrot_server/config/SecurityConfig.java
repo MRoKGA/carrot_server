@@ -12,7 +12,7 @@ public class SecurityConfig {
     SecurityFilterChain security(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable());
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("api/theTest").permitAll()   // 테스트 엔드포인트 허용
+                .requestMatchers("/api/theTest").permitAll()   // 테스트 엔드포인트 허용
                 .anyRequest().authenticated()
         );
         http.httpBasic(Customizer.withDefaults());     // 나머지는 Basic 인증 유지
