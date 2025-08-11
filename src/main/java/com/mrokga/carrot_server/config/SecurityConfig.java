@@ -9,13 +9,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain security(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable());
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/theTest", "/api/theTest/**").permitAll()   // 테스트 엔드포인트 허용
-                .anyRequest().authenticated()
-        );
-        http.httpBasic(Customizer.withDefaults());     // 나머지는 Basic 인증 유지
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable()) // CSRF 끄기
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/theTest").permitAll() // theTest는 전부 허용
+                        .anyRequest().authenticated() // 나머지는 인증 필요
+                )
+                .httpBasic(httpBasic -> {}); // Basic 인증 유지
+
         return http.build();
     }
 }
