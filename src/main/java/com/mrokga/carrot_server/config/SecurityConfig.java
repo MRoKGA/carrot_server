@@ -20,10 +20,10 @@ public class SecurityConfig {
                                 "/actuator/health", "/actuator/info",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest"
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .httpBasic(Customizer.withDefaults())   // 임시(나중에 JWT로 교체)
-                .formLogin(f -> f.disable())
+                .formLogin(form -> form.disable())
                 .logout(l -> l.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(
                         org.springframework.security.config.http.SessionCreationPolicy.STATELESS));
