@@ -94,14 +94,19 @@ jobs:
             set -e
             cd /home/${USER}/deploy_artifacts/build/libs
 
-            LATEST_JAR=$(ls -t *-SNAPSHOT.jar | grep -v 'plain' | head -n 1)
+            # 최신 생성된 JAR 선택
+            LATEST_JAR=$(ls -Art *-SNAPSHOT.jar | grep -v 'plain' | tail -n 1)
             echo "[PROMOTE] Using $LATEST_JAR"
 
             # 기존 JAR 삭제 후 새 JAR 복사
             sudo rm -f /opt/carrot/app.jar
-            sudo cp -f "$LATEST_JAR" /opt/carrot/app.jar
+            sudo cp "$LATEST_JAR" /opt/carrot/app.jar
             sudo chown ${USER}:${USER} /opt/carrot/app.jar
             ls -lh /opt/carrot/app.jar
+
+            # 배포된 JAR에 TestApi.class 있는지 확인
+            echo "[CHECK] Searching for TestApi.class in deployed jar..."
+            jar tf /opt/carrot/app.jar | grep "TestApi.class" || (echo "❌ TestApi.class not found" && exit 1)
 
             # 환경변수 파일 작성
             sudo bash -c 'cat > /opt/carrot/.env <<EOT
@@ -114,6 +119,7 @@ jobs:
             EOT'
             sudo chmod 600 /opt/carrot/.env
             sudo sed -i "s/\r$//" /opt/carrot/.env
+        
 
         # 11. JAR 내용 검증
       - name: Validate deployed JAR contents
