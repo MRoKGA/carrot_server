@@ -33,7 +33,7 @@ jobs:
 
       # 📦 빌드된 JAR를 아티팩트로 업로드 (plain.jar 제외)
       - name: Upload JAR as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: built-jar
           path: |
