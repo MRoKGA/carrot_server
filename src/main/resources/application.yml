@@ -28,10 +28,21 @@ spring:
       allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
       allowed-headers: "*"
       max-age: 3600
-
+  messages:
+    basename: messages
+    encoding: UTF-8
 
 springdoc:
   api-docs.enabled: true
   swagger-ui:
     enabled: true
     path: /swagger-ui
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

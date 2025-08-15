@@ -10,6 +10,11 @@ spring:
       ddl-auto: update   # 개발용 (배포는 validate 권장)
     show-sql: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
 logging:
   level:
     org.hibernate.SQL: debug
