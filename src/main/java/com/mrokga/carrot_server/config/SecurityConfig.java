@@ -14,6 +14,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // CSRF 끄기
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/theTest").permitAll() // theTest는 전부 허용
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/auth/*").permitAll()
                         .anyRequest().authenticated() // 나머지는 인증 필요
                 )
                 .httpBasic(httpBasic -> {}); // Basic 인증 유지

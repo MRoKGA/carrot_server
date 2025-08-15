@@ -7,3 +7,9 @@ spring:
     username: root
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+sms:
+  api-key: NCSRH6Q6ILREH2QF
+  api-secret-key: C15D2OCMIHBW8UQ2ARMP2FBDAH8D0ZYX
+  sender: 01076294088
