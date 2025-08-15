@@ -25,6 +25,17 @@ jobs:
     - name: Build with Gradle (skip tests)
       run: ./gradlew clean build -x test
 
+    - name: Prepare remote dir (/opt/carrot)
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            sudo mkdir -p /opt/carrot
+            sudo chown -R ubuntu:ubuntu /opt/carrot   
+
     - name: Copy JAR to EC2 
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -34,6 +45,40 @@ jobs:
         source: "build/libs/*SNAPSHOT.jar"
         target: "/opt/carrot/"
 
+
+      # 서버에서 app.jar로 교체 + .env 생성/갱신
+    - name: Prepare app.jar and .env on EC2
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          set -e
+          sudo mkdir -p /opt/carrot
+
+          LATEST_JAR=$(ls -t /opt/carrot/*SNAPSHOT.jar 2>/dev/null | head -n 1 || true) 
+          if [ -n "$LATEST_JAR" ]; then
+            sudo mv -f "$LATEST_JAR" /opt/carrot/app.jar
+          fi
+          
+          if [ -f /opt/carrot/app.jar ]; then
+            sudo chown ubuntu:ubuntu /opt/carrot/app.jar
+          fi
+
+          sudo bash -c 'cat > /opt/carrot/.env <<EOT
+          SPRING_PROFILES_ACTIVE=prod
+          SERVER_PORT=8080
+          SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}
+          SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}
+          CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+          EOT'
+
+          sudo chown ubuntu:ubuntu /opt/carrot/.env
+          sudo chmod 600 /opt/carrot/.env
+          sudo sed -i "s/\r$//" /opt/carrot/.env
+
     - name: Restart Spring Boot on EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -41,8 +86,8 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo mv /opt/carrot/*SNAPSHOT.jar /opt/carrot/app.jar
-          sudo systemctl stop carrot
-          sudo systemctl start carrot
+          set -e
+          sudo systemctl daemon-reload
+          sudo systemctl restart carrot
           sudo systemctl status carrot --no-pager
 
