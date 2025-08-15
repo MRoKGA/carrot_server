@@ -25,7 +25,10 @@ jobs:
     - name: Build with Gradle (skip tests)
       run: ./gradlew clean build -x test
 
-    - name: Prepare remote dir (/opt/carrot)
+    - name: Debug – list local build/libs
+      run: ls -l build/libs
+
+    - name: Prepare remote dirs
       uses: appleboy/ssh-action@v0.1.7
       with:
           host: ${{ secrets.EC2_HOST }}
@@ -33,21 +36,34 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
+            mkdir -p /home/${USER}/deploy_artifacts/build/libs
             sudo mkdir -p /opt/carrot
-            sudo chown -R ubuntu:ubuntu /opt/carrot   
+            sudo chown -R ${USER}:${USER} /home/${USER}/deploy_artifacts
+            sudo chown -R ${USER}:${USER} /opt/carrot
+            ls -ld /home/${USER}/deploy_artifacts/build/libs
+            ls -ld /opt/carrot   
 
-    - name: Copy JAR to EC2 
+    - name: Upload JAR to EC2
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "build/libs/*SNAPSHOT.jar"
-        target: "/opt/carrot/"
+        target: "/home/ubuntu/deploy_artifacts/build/libs/"
 
+    - name: Verify remote staging
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+         set -e
+         echo "[REMOTE] staging list:"
+         ls -l /home/${USER}/deploy_artifacts/build/libs
 
-      # 서버에서 app.jar로 교체 + .env 생성/갱신
-    - name: Prepare app.jar and .env on EC2
+    - name: Promote to /opt/carrot/app.jar and write .env
       uses: appleboy/ssh-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -55,17 +71,20 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           set -e
-          sudo mkdir -p /opt/carrot
-
-          LATEST_JAR=$(ls -t /opt/carrot/*SNAPSHOT.jar 2>/dev/null | head -n 1 || true) 
-          if [ -n "$LATEST_JAR" ]; then
-            sudo mv -f "$LATEST_JAR" /opt/carrot/app.jar
-          fi
+          cd /home/${USER}/deploy_artifacts/build/libs
           
-          if [ -f /opt/carrot/app.jar ]; then
-            sudo chown ubuntu:ubuntu /opt/carrot/app.jar
+            
+          LATEST_JAR=$(ls -t *SNAPSHOT.jar 2>/dev/null | grep -v 'plain' | head -n 1 || true)
+          if [ -z "$LATEST_JAR" ]; then
+            echo "No executable SNAPSHOT jar found in staging (plain excluded)."
+            exit 1
           fi
-
+            echo "[PROMOTE] using $LATEST_JAR"
+            
+          cp -f "$LATEST_JAR" /opt/carrot/app.jar
+          sudo chown ${USER}:${USER} /opt/carrot/app.jar
+          ls -l /opt/carrot/app.jar
+            
           sudo bash -c 'cat > /opt/carrot/.env <<EOT
           SPRING_PROFILES_ACTIVE=prod
           SERVER_PORT=8080
@@ -74,8 +93,6 @@ jobs:
           SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}
           CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
           EOT'
-
-          sudo chown ubuntu:ubuntu /opt/carrot/.env
           sudo chmod 600 /opt/carrot/.env
           sudo sed -i "s/\r$//" /opt/carrot/.env
 
