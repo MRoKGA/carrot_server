@@ -26,10 +26,10 @@ public class UserRegion {
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
 
-    @Column(name = "is_primary")
+    @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive = false;
 
     @Column(name = "verified_at")
