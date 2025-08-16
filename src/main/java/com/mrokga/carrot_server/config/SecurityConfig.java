@@ -16,11 +16,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(h -> h.frameOptions(f -> f.sameOrigin())) // H2 콘솔 같은 프레임 허용시
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
+                .requestMatchers(
                                 "/actuator/health", "/actuator/info",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest"
-                        ).permitAll()
-                        .anyRequest().permitAll()
+                 ).permitAll()
+                 .anyRequest().permitAll()
                 )
                 .httpBasic(Customizer.withDefaults())   // 임시(나중에 JWT로 교체)
                 .formLogin(form -> form.disable())
