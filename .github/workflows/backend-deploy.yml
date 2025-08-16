@@ -3,7 +3,7 @@ name: Backend CI/CD
 on:
   push:
     branches:
-      - feature/prodDB
+      - main
 
 concurrency:
   group: backend-deploy

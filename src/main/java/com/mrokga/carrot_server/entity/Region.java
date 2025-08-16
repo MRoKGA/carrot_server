@@ -25,5 +25,6 @@ public class Region {
     @Column(nullable = false, length = 20)
     private String code;
 
-
+    @Column(name = "centroid", length = 64)  // columnDefinition 제거
+    private String centroid;
 }
