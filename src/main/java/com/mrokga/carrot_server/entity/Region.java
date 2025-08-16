@@ -25,7 +25,6 @@ public class Region {
     @Column(nullable = false, length = 20)
     private String code;
 
-    // POINT 타입은 JTS Geometry 또는 Hibernate Spatial로 매핑 가능
-    @Column(columnDefinition = "POINT SRID 4326")
+    @Column(name = "centroid", length = 64)  // columnDefinition 제거
     private String centroid;
 }
