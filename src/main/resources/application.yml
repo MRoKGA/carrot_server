@@ -32,15 +32,6 @@ spring:
     basename: messages
     encoding: UTF-8
 
-<<<<<<< Updated upstream
-springdoc:
-  api-docs.enabled: true
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui
-
-=======
-<<<<<<< HEAD
   data:
     redis:
       host: localhost
@@ -52,14 +43,13 @@ sms:
   sender: 01076294088
 
 default-profile-image-url:
-=======
+
 springdoc:
   api-docs.enabled: true
   swagger-ui:
     enabled: true
     path: /swagger-ui
 
->>>>>>> Stashed changes
 management:
   endpoints:
     web:
@@ -68,7 +58,3 @@ management:
   endpoint:
     health:
       show-details: never
-<<<<<<< Updated upstream
-=======
->>>>>>> 5bb14d6ca3b82311984306135acf946805b49f78
->>>>>>> Stashed changes
