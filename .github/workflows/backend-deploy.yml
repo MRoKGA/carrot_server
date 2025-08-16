@@ -3,7 +3,7 @@ name: Backend CI/CD
 on:
   push:
     branches:
-      - feature/cd        # ← 검증용 브랜치. 확인 끝나면 main으로 바꿔
+      - main
 
 concurrency:
   group: backend-deploy
