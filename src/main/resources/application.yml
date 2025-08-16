@@ -32,7 +32,6 @@ spring:
     basename: messages
     encoding: UTF-8
 
-<<<<<<< HEAD
   data:
     redis:
       host: localhost
@@ -44,7 +43,7 @@ sms:
   sender: 01076294088
 
 default-profile-image-url:
-=======
+
 springdoc:
   api-docs.enabled: true
   swagger-ui:
@@ -59,4 +58,3 @@ management:
   endpoint:
     health:
       show-details: never
->>>>>>> 5bb14d6ca3b82311984306135acf946805b49f78
