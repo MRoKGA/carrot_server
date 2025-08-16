@@ -1,19 +1,21 @@
 package com.mrokga.carrot_server.config;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import org.springframework.context.annotation.Bean;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
+@OpenAPIDefinition(
+        info = @Info(title = "Carrot API", version = "v1", description = "중고 거래 서비스 API 문서")
+)
+@SecurityScheme(
+        name = "Authorization",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT",
+        description = "Access token 입력. 예: `Bearer eyJ...`"
+)
 @Configuration
 public class SwaggerConfig {
-
-    @Bean
-    public OpenAPI openAPI() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title("API 문서")
-                        .description("Swagger 테스트용 API 문서")
-                        .version("v1.0.0"));
-    }
 }
