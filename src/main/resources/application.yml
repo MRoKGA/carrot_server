@@ -32,6 +32,19 @@ spring:
     basename: messages
     encoding: UTF-8
 
+<<<<<<< HEAD
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+sms:
+  api-key: NCSRH6Q6ILREH2QF
+  api-secret-key: C15D2OCMIHBW8UQ2ARMP2FBDAH8D0ZYX
+  sender: 01076294088
+
+default-profile-image-url:
+=======
 springdoc:
   api-docs.enabled: true
   swagger-ui:
@@ -46,3 +59,4 @@ management:
   endpoint:
     health:
       show-details: never
+>>>>>>> 5bb14d6ca3b82311984306135acf946805b49f78
