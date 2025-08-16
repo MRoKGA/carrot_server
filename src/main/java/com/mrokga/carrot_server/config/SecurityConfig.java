@@ -8,18 +8,27 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // CSRF 끄기
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .headers(h -> h.frameOptions(f -> f.sameOrigin())) // H2 콘솔 같은 프레임 허용시
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/theTest").permitAll() // theTest는 전부 허용
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/auth/*").permitAll()
-                        .anyRequest().authenticated() // 나머지는 인증 필요
+                .requestMatchers(
+                                "/actuator/health", "/actuator/info",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest"
+                 ).permitAll()
+                 .anyRequest().permitAll()
                 )
-                .httpBasic(httpBasic -> {}); // Basic 인증 유지
+                .httpBasic(Customizer.withDefaults())   // 임시(나중에 JWT로 교체)
+                .formLogin(form -> form.disable())
+                .logout(l -> l.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(
+                        org.springframework.security.config.http.SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
 }
+
