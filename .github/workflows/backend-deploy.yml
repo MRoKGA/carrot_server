@@ -126,18 +126,16 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            RUN_USER="${USER}"  # ← 현재 SSH 로그인 사용자(예: ubuntu)
-            # ▼▼▼ EnvironmentFile 지정으로 .env를 서비스 환경에 주입 ▼▼▼
-            #     systemd가 직접 .env를 읽어서 프로세스 환경변수로 전달한다.
+            RUN_USER="${USER}"  
             sudo tee /etc/systemd/system/carrot.service >/dev/null <<EOF
             [Unit]
             Description=Carrot Spring Boot Service
             After=network.target
   
             [Service]
-            User=${RUN_USER}   # ← EC2 로그인 사용자로 실행
+            User=${RUN_USER}   
             WorkingDirectory=/opt/carrot
-            EnvironmentFile=/opt/carrot/.env   # ← (.env 로드) [추가]
+            EnvironmentFile=/opt/carrot/.env   
             ExecStart=/usr/bin/java -jar /opt/carrot/app.jar
             Restart=always
             RestartSec=5
