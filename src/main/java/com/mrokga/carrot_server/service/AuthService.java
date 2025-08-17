@@ -1,5 +1,9 @@
 package com.mrokga.carrot_server.service;
 
+import com.mrokga.carrot_server.config.jwt.JwtProperties;
+import com.mrokga.carrot_server.config.jwt.TokenProvider;
+import com.mrokga.carrot_server.dto.response.TokenResponseDto;
+import com.mrokga.carrot_server.entity.User;
 import com.mrokga.carrot_server.enums.VerifyCodeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +25,15 @@ public class AuthService {
 
     private final StringRedisTemplate redisTemplate;
 
-    private static final String PREFIX = "sms:code:";
-    private static final Duration EXPIRE_MINUTES = Duration.ofMinutes(3);
+    private final JwtProperties jwtProperties;
+
+    private final TokenProvider tokenProvider;
+
+    private static final String SMS_PREFIX = "sms:code:";
+    private static final Duration SMS_EXPIRE_MINUTES = Duration.ofMinutes(5);
+
+    private static final String ACCESS_TOKEN_PREFIX = "access_token:";
+    private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
 
     @Value("${sms.sender}")
     private String sender;
@@ -30,9 +41,9 @@ public class AuthService {
     public void sendSms(String phoneNumber) {
 
         String code = generateCode();
-        String key = PREFIX + phoneNumber;
+        String key = SMS_PREFIX + phoneNumber;
 
-        redisTemplate.opsForValue().set(key, code, EXPIRE_MINUTES);
+        redisTemplate.opsForValue().set(key, code, SMS_EXPIRE_MINUTES);
 
         Message message = new Message();
         message.setFrom(sender);
@@ -51,7 +62,7 @@ public class AuthService {
 
     public VerifyCodeResult verifyCode(String phoneNumber, String code) {
         log.info("[AuthService] verifyCode starts");
-        String key = PREFIX + phoneNumber;
+        String key = SMS_PREFIX + phoneNumber;
 
         String saved = redisTemplate.opsForValue().get(key);
         log.info("saved = {}", saved);
@@ -78,5 +89,42 @@ public class AuthService {
     public static String generateCode() {
         int number = (int)(Math.random() * 1000000);
         return String.format("%06d", number);
+    }
+
+    public void resendSms(String phoneNumber) {
+
+        redisTemplate.delete(SMS_PREFIX + phoneNumber);
+
+        sendSms(phoneNumber);
+    }
+
+    public TokenResponseDto issueAndReturnTokens(User user) {
+        String accessToken = tokenProvider.generateAccessToken(user);
+        String refreshToken = tokenProvider.generateRefreshToken(user);
+
+        saveRefreshToken(user, refreshToken);
+
+        return TokenResponseDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresInSeconds(jwtProperties.getAccessExpiration().toSeconds())
+                .build();
+    }
+
+    public TokenResponseDto renew(User user, String oldRefreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + user.getId();
+        String storedRefreshToken = redisTemplate.opsForValue().get(key);
+
+        if(storedRefreshToken == null || !storedRefreshToken.equals(oldRefreshToken) || !tokenProvider.validToken(oldRefreshToken)) {
+            throw new RuntimeException("INVALID REFRESH TOKEN");
+        }
+
+        return issueAndReturnTokens(user);
+    }
+
+    public void saveRefreshToken(User user, String refreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + user.getId();
+
+        redisTemplate.opsForValue().set(key, refreshToken, jwtProperties.getRefreshExpiration());
     }
 }

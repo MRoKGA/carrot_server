@@ -1,8 +1,12 @@
 package com.mrokga.carrot_server.controller;
 
+import com.mrokga.carrot_server.config.jwt.TokenProvider;
 import com.mrokga.carrot_server.dto.ApiResponseDto;
+import com.mrokga.carrot_server.dto.UserDto;
 import com.mrokga.carrot_server.dto.request.SignupRequestDto;
 import com.mrokga.carrot_server.dto.request.VerifyCodeRequestDto;
+import com.mrokga.carrot_server.dto.response.LoginResponseDto;
+import com.mrokga.carrot_server.dto.response.TokenResponseDto;
 import com.mrokga.carrot_server.entity.User;
 import com.mrokga.carrot_server.enums.VerifyCodeResult;
 import com.mrokga.carrot_server.service.AuthService;
@@ -16,18 +20,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @Tag(name = "Authorization API", description = "인증 관련 API")
+@Slf4j
 public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final TokenProvider tokenProvider;
 
     @PostMapping("/send")
     @Operation(summary = "인증번호 sms 발송", description = "사용자 휴대폰 번호로 인증번호 sms 발송")
@@ -108,5 +115,73 @@ public class AuthController {
         User user = userService.signup(request);
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", user));
+    }
+
+    @PostMapping("/resend")
+    @Operation(summary = "인증번호 sms 재발송", description = "사용자 휴대폰 번호로 인증번호 sms 재발송")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "인증번호 재발송 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    public ResponseEntity<ApiResponseDto<Void>> resendSms(@Parameter(description = "휴대폰 번호", example = "01028369068") @RequestParam String phoneNumber) {
+        authService.resendSms(phoneNumber);
+
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success"));
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "로그인 요청", description = "로그인 요청")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.ApiLoginResponse.class), examples = {
+                    @ExampleObject(value = """
+                            {
+                              "code": 200,
+                              "message": "로그인 성공",
+                              "data": {
+                                "token": {
+                                  "accessToken": "string",
+                                  "refreshToken": "string",
+                                  "expiresInSeconds": "long"
+                                },
+                                "user": {
+                                  "id": "int",
+                                  "nickname": "string",
+                                  "email": "string"
+                                }
+                              }
+                            }
+                            """)
+            })),
+            @ApiResponse(responseCode = "400", description = "인증번호 불일치", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class), examples = {
+                    @ExampleObject(value = """
+                            { "code": 400, "message": "인증코드 불일치", "data": null }
+                            """)
+            })),
+            @ApiResponse(responseCode = "410", description = "인증번호 만료", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class), examples = {
+                    @ExampleObject(value = """
+                            { "code": 410, "message": "인증코드 만료", "data": null }
+                            """)
+            }))
+    })
+    public ResponseEntity<ApiResponseDto> login(@RequestBody VerifyCodeRequestDto request) {
+        VerifyCodeResult result = authService.verifyCode(request.getPhoneNumber(), request.getCode());
+
+        return switch (result) {
+            case OK -> {
+                User user = userService.getUserByPhoneNumber(request.getPhoneNumber());
+                TokenResponseDto tokenResponseDto = authService.issueAndReturnTokens(user);
+                UserDto userDto = UserDto.builder()
+                        .id(user.getId())
+                        .nickname(user.getNickname())
+                        .email(user.getEmail())
+                        .build();
+
+                LoginResponseDto loginResponseDto = new LoginResponseDto(tokenResponseDto, userDto);
+                log.info("loginResponseDto = {}", loginResponseDto);
+
+                yield ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "로그인 성공", loginResponseDto));
+            }
+            case MISMATCH -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDto.error(HttpStatus.BAD_REQUEST.value(), result.getMessage()));
+            case EXPIRED -> ResponseEntity.status(HttpStatus.GONE).body(ApiResponseDto.error(HttpStatus.GONE.value(), result.getMessage()));
+        };
     }
 }

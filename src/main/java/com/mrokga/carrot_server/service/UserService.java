@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,6 +33,7 @@ public class UserService {
                 .phoneNumber(dto.getPhoneNumber())
                 .nickname(dto.getNickname())
                 .profileImageUrl(dto.getProfileImageUrl() != null ? dto.getProfileImageUrl() : defaultProfileImageUrl)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         userRepository.save(user);
@@ -44,6 +47,7 @@ public class UserService {
 //                .isPrimary(userRegionList.isEmpty())
                 .isPrimary(true)
                 .isActive(true)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         userRegionRepository.save(userRegion);
@@ -55,5 +59,9 @@ public class UserService {
         User user = userRepository.findByNickname(nickname);
 
         return user != null;
+    }
+
+    public User getUserByPhoneNumber(String phoneNumber) {
+        return userRepository.findByPhoneNumber(phoneNumber);
     }
 }

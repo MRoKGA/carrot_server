@@ -1,34 +1,43 @@
 package com.mrokga.carrot_server.config;
 
+import com.mrokga.carrot_server.config.jwt.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        return http
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .headers(h -> h.frameOptions(f -> f.sameOrigin())) // H2 콘솔 같은 프레임 허용시
+                .csrf(AbstractHttpConfigurer::disable)
+                .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) // H2 콘솔 같은 프레임 허용시
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
+                        .requestMatchers(
                                 "/actuator/health", "/actuator/info",
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest"
-                 ).permitAll()
-                 .anyRequest().permitAll()
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest",
+                                "/api/auth/**"
+                                ).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 추가
+                        .anyRequest().authenticated()
                 )
-                .httpBasic(Customizer.withDefaults())   // 임시(나중에 JWT로 교체)
-                .formLogin(form -> form.disable())
-                .logout(l -> l.disable())
-                .sessionManagement(s -> s.sessionCreationPolicy(
-                        org.springframework.security.config.http.SessionCreationPolicy.STATELESS));
-
-        return http.build();
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 }
 
