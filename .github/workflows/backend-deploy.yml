@@ -108,10 +108,50 @@ jobs:
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             SPRING_JPA_HIBERNATE_DDL_AUTO=update
             SPRING_FLYWAY_ENABLED=false
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            SMS_API_KEY=${{ secrets.SMS_API_KEY }}
+            SMS_SECRET_KEY=${{ secrets.SMS_SECRET_KEY }}
+            SMS_SENDER=${{ secrets.SMS_SENDER }}
             EOT'
             sudo chmod 600 /opt/carrot/.env
             sudo sed -i "s/\r$//" /opt/carrot/.env
             echo "[ENV] /opt/carrot/.env written."
+            
+
+      - name: Install/Update systemd unit (carrot.service)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            RUN_USER="${USER}"  # ← 현재 SSH 로그인 사용자(예: ubuntu)
+            # ▼▼▼ EnvironmentFile 지정으로 .env를 서비스 환경에 주입 ▼▼▼
+            #     systemd가 직접 .env를 읽어서 프로세스 환경변수로 전달한다.
+            sudo tee /etc/systemd/system/carrot.service >/dev/null <<EOF
+            [Unit]
+            Description=Carrot Spring Boot Service
+            After=network.target
+  
+            [Service]
+            User=${RUN_USER}   # ← EC2 로그인 사용자로 실행
+            WorkingDirectory=/opt/carrot
+            EnvironmentFile=/opt/carrot/.env   # ← (.env 로드) [추가]
+            ExecStart=/usr/bin/java -jar /opt/carrot/app.jar
+            Restart=always
+            RestartSec=5
+            LimitNOFILE=65536
+            StandardOutput=journal
+            StandardError=journal
+  
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+  
+            sudo systemctl daemon-reload
+            sudo systemctl enable carrot.service
+
 
       - name: Restart Spring Boot on EC2
         uses: appleboy/ssh-action@v1.2.0
