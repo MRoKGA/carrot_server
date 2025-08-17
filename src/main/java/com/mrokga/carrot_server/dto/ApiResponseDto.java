@@ -1,5 +1,6 @@
 package com.mrokga.carrot_server.dto;
 
+import com.mrokga.carrot_server.dto.response.LoginResponseDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,4 +38,7 @@ public class ApiResponseDto<T> {
     public static <T> ApiResponseDto<T> error(int code, String message) {
         return new ApiResponseDto<>(code, message, null);
     }
+
+    @Schema(name = "ApiLoginResponse", description = "로그인 요청 응답 예시용 class")
+    public class ApiLoginResponse extends ApiResponseDto<LoginResponseDto> {}
 }
