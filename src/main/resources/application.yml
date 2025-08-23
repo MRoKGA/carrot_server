@@ -38,9 +38,9 @@ spring:
       port: 6379
 
 sms:
-  api-key: NCSRH6Q6ILREH2QF
-  api-secret-key: C15D2OCMIHBW8UQ2ARMP2FBDAH8D0ZYX
-  sender: 01076294088
+  api-key: ${SMS_API_KEY}
+  api-secret-key: ${SMS_SECRET_KEY}
+  sender: ${SMS_SENDER}
 
 default-profile-image-url:
 
@@ -58,3 +58,9 @@ management:
   endpoint:
     health:
       show-details: never
+
+jwt:
+  issuer: carrot-server
+  secret: ${JWT_SECRET}
+  access-expiration: 15m    # 15분
+  refresh-expiration: 14d   # 14일
