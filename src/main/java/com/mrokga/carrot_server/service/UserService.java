@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,33 +29,45 @@ public class UserService {
 
     @Transactional
     public User signup(SignupRequestDto dto) {
-        User user = User.builder()
-                .phoneNumber(dto.getPhoneNumber())
-                .nickname(dto.getNickname())
-                .profileImageUrl(dto.getProfileImageUrl() != null ? dto.getProfileImageUrl() : defaultProfileImageUrl)
-                .build();
+        try {
+            User user = User.builder()
+                    .phoneNumber(dto.getPhoneNumber())
+                    .nickname(dto.getNickname())
+                    .profileImageUrl(dto.getProfileImageUrl() != null ? dto.getProfileImageUrl() : defaultProfileImageUrl)
+                    .createdAt(LocalDateTime.now())
+                    .build();
 
-        userRepository.save(user);
+            userRepository.save(user);
 
-        Region region = regionRepository.findByFullName(dto.getRegion());
+            Region region = regionRepository.findByFullName(dto.getRegion());
+            log.info("region: {}", region);
 //        List<UserRegion> userRegionList = userRegionRepository.findAllByUserId(user.getId());
 
-        UserRegion userRegion = UserRegion.builder()
-                .user(user)
-                .region(region)
+            UserRegion userRegion = UserRegion.builder()
+                    .user(user)
+                    .region(region)
 //                .isPrimary(userRegionList.isEmpty())
-                .isPrimary(true)
-                .isActive(true)
-                .build();
+                    .isPrimary(true)
+                    .isActive(true)
+                    .createdAt(LocalDateTime.now())
+                    .build();
 
-        userRegionRepository.save(userRegion);
+            userRegionRepository.save(userRegion);
 
-        return user;
+            return user;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RuntimeException("회원가입 실패");
+        }
     }
 
     public boolean isDuplicateNickname(String nickname) {
         User user = userRepository.findByNickname(nickname);
 
         return user != null;
+    }
+
+    public User getUserByPhoneNumber(String phoneNumber) {
+        return userRepository.findByPhoneNumber(phoneNumber);
     }
 }
