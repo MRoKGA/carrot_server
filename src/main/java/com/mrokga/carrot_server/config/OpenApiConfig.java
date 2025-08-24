@@ -1,4 +1,4 @@
-package com.mrokga.carrot_server.GPT.config;
+package com.mrokga.carrot_server.config;
 
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
@@ -23,4 +23,6 @@ public class OpenApiConfig {
                 })
         );
     }
+
+
 }
