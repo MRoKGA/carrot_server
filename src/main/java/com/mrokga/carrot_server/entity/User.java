@@ -30,7 +30,6 @@ public class User {
     @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
 
-    @Builder.Default
     @Column(name = "manner_temperature")
     private Double mannerTemperature = 36.5;
 
