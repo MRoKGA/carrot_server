@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/actuator/health", "/actuator/info",
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest", "/__test-error",
                                 "/api/auth/**"
                                 ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 추가

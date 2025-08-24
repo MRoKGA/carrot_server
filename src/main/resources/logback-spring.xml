@@ -1,0 +1,10 @@
+<configuration>
+    <appender name="RING" class="com.mrokga.carrot_server.GPT.logging.RingBufferAppender"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern></encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="RING"/>
+    </root>
+</configuration>
