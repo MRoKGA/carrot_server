@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public class SignupRequestDto {
 
-    @Schema(description = "동네 이름", example = "서울 동작구 대방동")
+    @Schema(description = "동네 이름", example = "서울시 동작구 대방동")
     private String region;
 
     @Schema(description = "휴대폰 번호", example = "01028369068")

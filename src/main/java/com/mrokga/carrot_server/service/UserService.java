@@ -29,36 +29,30 @@ public class UserService {
 
     @Transactional
     public User signup(SignupRequestDto dto) {
-        try {
-            User user = User.builder()
-                    .phoneNumber(dto.getPhoneNumber())
-                    .nickname(dto.getNickname())
-                    .profileImageUrl(dto.getProfileImageUrl() != null ? dto.getProfileImageUrl() : defaultProfileImageUrl)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+        User user = User.builder()
+                .phoneNumber(dto.getPhoneNumber())
+                .nickname(dto.getNickname())
+                .profileImageUrl(dto.getProfileImageUrl() != null ? dto.getProfileImageUrl() : defaultProfileImageUrl)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-            userRepository.save(user);
+        userRepository.save(user);
 
-            Region region = regionRepository.findByFullName(dto.getRegion());
-            log.info("region: {}", region);
+        Region region = regionRepository.findByFullName(dto.getRegion());
 //        List<UserRegion> userRegionList = userRegionRepository.findAllByUserId(user.getId());
 
-            UserRegion userRegion = UserRegion.builder()
-                    .user(user)
-                    .region(region)
+        UserRegion userRegion = UserRegion.builder()
+                .user(user)
+                .region(region)
 //                .isPrimary(userRegionList.isEmpty())
-                    .isPrimary(true)
-                    .isActive(true)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+                .isPrimary(true)
+                .isActive(true)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-            userRegionRepository.save(userRegion);
+        userRegionRepository.save(userRegion);
 
-            return user;
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new RuntimeException("회원가입 실패");
-        }
+        return user;
     }
 
     public boolean isDuplicateNickname(String nickname) {
