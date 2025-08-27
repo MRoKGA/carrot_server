@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chatRoom")
+@Table(name = "chat_room")
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor

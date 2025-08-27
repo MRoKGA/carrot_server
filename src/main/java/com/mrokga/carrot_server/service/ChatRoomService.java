@@ -74,7 +74,7 @@ public class ChatRoomService {
         }
 
         // 조회 또는 생성
-        ChatRoom chatRoom = chatRoomRepository.findByProductIdAndBuyerIdAndSellerId(
+        ChatRoom chatRoom = chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
                 product.getId(), buyer.getId(), seller.getId())
                 .orElseGet(() -> chatRoomRepository.save(
                         ChatRoom.builder().product(product).buyer(buyer).seller(seller).build()

@@ -4,11 +4,14 @@ import com.mrokga.carrot_server.enums.MessageType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_message")
+@Table(name = "chat_message",
+        indexes = {@Index(name = "idx_chat_message_room_created", columnList = "chat_room_id, created_at")}
+)
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,6 +35,10 @@ public class ChatMessage {
 
     @Column(name = "message", columnDefinition = "text", nullable = false)
     private String message;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_message_id")
+    private ChatMessage parentMessage; // null이면 일반 메시지, 있으면 '답장'
 
     @CreationTimestamp
     @Column(name = "created_at")
