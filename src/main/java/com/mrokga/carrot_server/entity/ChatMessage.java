@@ -10,7 +10,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chat_message",
-        indexes = {@Index(name = "idx_chat_message_room_created", columnList = "chat_room_id, created_at")}
+        indexes = {
+                // 목록 정렬(시간 순) + 타이브레이커
+                @Index(name = "idx_msg_room_created_id", columnList = "chat_room_id, created_at, id"),
+                // 방의 마지막 메시지
+                @Index(name = "idx_msg_room_id", columnList = "chat_room_id, id"),
+                // 방에서 '특정 사용자'의 마지막 메시지
+                @Index(name = "idx_msg_room_user_id", columnList = "chat_room_id, sender_id, id")
+        }
 )
 @Getter @Setter
 @NoArgsConstructor

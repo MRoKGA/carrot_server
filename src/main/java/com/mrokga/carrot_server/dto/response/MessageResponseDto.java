@@ -51,4 +51,16 @@ public class MessageResponseDto {
             requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     private String replyToPreview;
+
+
+    // 내 메세지 구분 및 읽음 표시 여부
+    @Schema(description = "요청자(나)가 보낸 메시지인지 여부", example = "true")
+    private boolean mine;
+
+    @Schema(
+            description = "요청자 기준으로, 이 메시지가 상대에게 읽혔는지 여부 "
+                    + "(보통 '내 마지막 메시지'에만 true를 세팅하고 나머지는 false)",
+            example = "true"
+    )
+    private boolean readByOpponent;
 }

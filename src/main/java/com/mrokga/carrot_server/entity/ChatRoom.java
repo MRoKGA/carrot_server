@@ -8,7 +8,8 @@ import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_room")
+@Table(name = "chat_room",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "buyer_id", "seller_id"}))
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,6 +32,12 @@ public class ChatRoom {
     private User buyer;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable=false)
     private LocalDateTime createdAt;
+
+    @Column(name = "buyer_last_read_message_id")
+    private Integer buyerLastReadMessageId;
+
+    @Column(name = "seller_last_read_message_id")
+    private Integer sellerLastReadMessageId;
 }

@@ -2,13 +2,17 @@ package com.mrokga.carrot_server.service;
 
 import com.mrokga.carrot_server.dto.request.ChatRoomRequestDto;
 import com.mrokga.carrot_server.dto.response.ChatRoomResponseDto;
+import com.mrokga.carrot_server.entity.ChatMessage;
 import com.mrokga.carrot_server.entity.ChatRoom;
 import com.mrokga.carrot_server.entity.Product;
 import com.mrokga.carrot_server.entity.User;
+import com.mrokga.carrot_server.enums.MessageType;
+import com.mrokga.carrot_server.repository.ChatMessageRepository;
 import com.mrokga.carrot_server.repository.ChatRoomRepository;
 import com.mrokga.carrot_server.repository.ProductRepository;
 import com.mrokga.carrot_server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     private ChatRoomResponseDto toResponse(ChatRoom room) {
         ChatRoomResponseDto dto = new ChatRoomResponseDto();
@@ -30,6 +35,7 @@ public class ChatRoomService {
         dto.setBuyerId(room.getBuyer().getId());
         dto.setSellerId(room.getSeller().getId());
         dto.setCreatedAt(room.getCreatedAt());
+
         return dto;
     }
 
@@ -74,20 +80,57 @@ public class ChatRoomService {
         }
 
         // 조회 또는 생성
-        ChatRoom chatRoom = chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
-                product.getId(), buyer.getId(), seller.getId())
-                .orElseGet(() -> chatRoomRepository.save(
-                        ChatRoom.builder().product(product).buyer(buyer).seller(seller).build()
-                ));
+        try {
+            ChatRoom chatRoom = chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
+                            product.getId(), buyer.getId(), seller.getId())
+                    .orElseGet(() -> chatRoomRepository.save(
+                            ChatRoom.builder().product(product).buyer(buyer).seller(seller).build()
+                    ));
 
-        return toResponse(chatRoom);
+            return toResponse(chatRoom);
+        }catch(DataIntegrityViolationException e){ // DB에 유니크 제약 걸어뒀으나, 혹시 모를 동시성 충돌 시 재조회
+            return chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
+                    product.getId(), buyer.getId(), seller.getId())
+                    .map(this::toResponse)
+                    .orElseThrow(() -> e);
+        }
     }
 
     @Transactional(readOnly = true)
     public List<ChatRoomResponseDto> getRoomByUser(Integer userId){
-        List<ChatRoom> rooms = chatRoomRepository.findByBuyerId(userId);
-        rooms.addAll(chatRoomRepository.findBySellerId(userId));
-        return rooms.stream().map(this::toResponse).toList();
+        List<ChatRoom> rooms = chatRoomRepository.findByBuyer_IdOrSeller_Id(userId, userId);
+        return rooms.stream().map(room -> {
+            ChatRoomResponseDto dto = toResponse(room); // 기존 필드 세팅
+
+            // 방의 마지막 메시지 (미리보기용)
+            chatMessageRepository.findTopByChatRoom_IdOrderByIdDesc(room.getId())
+                    .ifPresent(last -> {
+                        dto.setLastMessageId(last.getId());
+                        dto.setLastMessageSenderId(last.getUser().getId());
+                        dto.setLastMessageAt(last.getCreatedAt());
+                        dto.setLastMessagePreview(
+                                last.getMessageType() == MessageType.TEXT
+                                        ? abbreviate(last.getMessage(), 50)
+                                        : "[이미지]"
+                        );
+                    });
+
+            // 내가 보낸 마지막 메시지 ID
+            Integer lastMyMessageId = chatMessageRepository
+                    .findTopByChatRoom_IdAndUser_IdOrderByIdDesc(room.getId(), userId)
+                    .map(ChatMessage::getId)
+                    .orElse(null);
+
+            // 상대의 lastRead 포인터
+            Integer opponentRead = Objects.equals(userId, room.getBuyer().getId())
+                    ? room.getSellerLastReadMessageId()
+                    : room.getBuyerLastReadMessageId();
+
+            boolean seen = (lastMyMessageId != null) && (opponentRead != null) && (opponentRead >= lastMyMessageId);
+            dto.setLastMessageSeen(seen);
+
+            return dto;
+        }).toList();
     }
 
     @Transactional
@@ -105,5 +148,10 @@ public class ChatRoomService {
         }
 
         chatRoomRepository.delete(chatRoom);
+    }
+
+    private String abbreviate(String s, int max) {
+        if (s == null) return null;
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 }

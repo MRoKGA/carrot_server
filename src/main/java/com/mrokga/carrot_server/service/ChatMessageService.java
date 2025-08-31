@@ -9,6 +9,7 @@ import com.mrokga.carrot_server.enums.MessageType;
 import com.mrokga.carrot_server.repository.ChatMessageRepository;
 import com.mrokga.carrot_server.repository.ChatRoomRepository;
 import com.mrokga.carrot_server.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ public class ChatMessageService {
     private final UserRepository userRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatMessageReadService chatMessageReadService;
+    private final SimpMessageSendingOperations messagingTemplate; // ✅ 실시간 전송 기능 추가
 
     // 메세지 객체 DTO 형태로 변환 메소드
     private MessageResponseDto toResponse(ChatMessage message){
@@ -55,9 +58,24 @@ public class ChatMessageService {
         return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 
-    //메세지 전송
+    // ✅ 기존 sendMessage: REST API용 (메시지 저장만 수행)
     @Transactional
     public MessageResponseDto sendMessage(MessageRequestDto dto, Integer senderId){
+        return saveMessage(dto, senderId);
+    }
+
+    // ✅ 새로운 sendMessageAndBroadcast: WebSocket 전용 (저장 + 실시간 전송)
+    @Transactional
+    public void sendMessageAndBroadcast(MessageRequestDto dto, Integer senderId){
+        MessageResponseDto response = saveMessage(dto, senderId);
+
+        // 해당 채팅방 구독자에게 브로드캐스트
+        messagingTemplate.convertAndSend("/sub/chat/room/" + dto.getChatRoomId(), response);
+    }
+
+    //메세지 전송
+    @Transactional
+    public MessageResponseDto saveMessage(MessageRequestDto dto, Integer senderId){
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 없음"));
 
@@ -122,8 +140,44 @@ public class ChatMessageService {
         }
 
         // 메시지 조회
-        return chatMessageRepository.findByChatRoom_IdOrderByCreatedAtAsc(roomId)
-                .stream().map(this::toResponse).toList();
+        List<ChatMessage> messages = chatMessageRepository.findByChatRoom_IdOrderByCreatedAtAscIdAsc(roomId);
+
+        // ===== 여기서 읽음 처리 =====
+        if (!messages.isEmpty()) {
+            int lastMessageId = messages.get(messages.size() - 1).getId();
+            // 이거 markAsRead 서비스 호출
+            chatMessageReadService.markAsRead(room.getId(), lastMessageId, requesterId);
+        }
+
+        // ====== 마지막 메시지 '읽음' 판정 ======
+        Integer opponentReadId = Objects.equals(requesterId, buyerId)
+                ? room.getSellerLastReadMessageId() : room.getBuyerLastReadMessageId();
+
+        ChatMessage lastMsg = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+        Integer lastMsgId = (lastMsg != null) ? lastMsg.getId() : null;
+        boolean lastIsMine = (lastMsg != null) && Objects.equals(lastMsg.getUser().getId(), requesterId);
+
+        // 마지막 메시지가 내가 보낸 거라면, 상대 포인터가 그 ID 이상인지로 판정
+        boolean lastMsgReadByOpponent = lastIsMine && opponentReadId != null
+                                         && lastMsgId != null && opponentReadId >= lastMsgId;
+
+        // ====== DTO 매핑 + 플래그 세팅 ======
+        final Integer lastIdFinal = lastMsgId;
+        final boolean lastReadFinal = lastMsgReadByOpponent;
+
+        return messages.stream().map(m -> {
+            MessageResponseDto dto = toResponse(m);
+
+            // 프론트 버블 정렬/색 구분에 유용
+            boolean mine = Objects.equals(m.getUser().getId(), requesterId);
+            dto.setMine(mine);
+
+            // "마지막 메시지"이면서 내가 보낸 메시지일 때만 읽음 플래그 세팅
+            dto.setReadByOpponent(Objects.equals(lastIdFinal, m.getId()) && lastReadFinal);
+
+            return dto;
+        }).toList();
+
     }
 
 
