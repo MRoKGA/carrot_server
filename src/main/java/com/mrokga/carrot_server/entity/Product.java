@@ -90,7 +90,7 @@ public class Product {
         if (status == null) status = TradeStatus.ON_SALE;
         if (viewCount == null) viewCount = 0;
     }
-
+  
     public void increaseViewCount() {
         this.viewCount++;
     }
