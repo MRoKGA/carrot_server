@@ -5,8 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRegionRepository extends JpaRepository<UserRegion, Long> {
-    List<UserRegion> findAllByUserId(Integer userId);
+
+    Optional<UserRegion> findActiveByUserId(int userId);
 }
