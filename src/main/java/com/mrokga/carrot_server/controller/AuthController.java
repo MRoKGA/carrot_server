@@ -34,7 +34,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
-    private final TokenProvider tokenProvider;
 
     @PostMapping("/send")
     @Operation(summary = "인증번호 sms 발송", description = "사용자 휴대폰 번호로 인증번호 sms 발송")
