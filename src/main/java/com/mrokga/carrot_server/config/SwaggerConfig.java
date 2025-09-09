@@ -3,11 +3,13 @@ package com.mrokga.carrot_server.config;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
 @OpenAPIDefinition(
-        info = @Info(title = "Carrot API", version = "v1", description = "중고 거래 서비스 API 문서")
+        info = @Info(title = "Carrot API", version = "v1", description = "중고 거래 서비스 API 문서"),
+        security = @SecurityRequirement(name = "Authorization")
 )
 @SecurityScheme(
         name = "Authorization",
