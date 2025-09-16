@@ -11,6 +11,7 @@ import com.mrokga.carrot_server.repository.ChatMessageRepository;
 import com.mrokga.carrot_server.repository.ChatRoomRepository;
 import com.mrokga.carrot_server.repository.ProductRepository;
 import com.mrokga.carrot_server.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
@@ -83,9 +84,14 @@ public class ChatRoomService {
         try {
             ChatRoom chatRoom = chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
                             product.getId(), buyer.getId(), seller.getId())
-                    .orElseGet(() -> chatRoomRepository.save(
-                            ChatRoom.builder().product(product).buyer(buyer).seller(seller).build()
-                    ));
+                    .orElseGet(() -> {
+                        ChatRoom newRoom = ChatRoom.builder().product(product).buyer(buyer).seller(seller).build();
+                        chatRoomRepository.save(newRoom);
+
+                        product.increaseChatCount();
+
+                        return newRoom;
+                    });
 
             return toResponse(chatRoom);
         }catch(DataIntegrityViolationException e){ // DB에 유니크 제약 걸어뒀으나, 혹시 모를 동시성 충돌 시 재조회

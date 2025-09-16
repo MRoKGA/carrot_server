@@ -1,12 +1,16 @@
 package com.mrokga.carrot_server.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.mrokga.carrot_server.entity.embeddable.Location;
 import com.mrokga.carrot_server.enums.TradeStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "product")
@@ -21,6 +25,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonManagedReference
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,6 +42,9 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "is_free", nullable = false)
+    private Boolean isFree;
+
     @Column(name = "price", nullable = false)
     private Integer price;
 
@@ -52,6 +60,23 @@ public class Product {
     @Column(name = "view_count")
     private Integer viewCount = 0;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ProductImage> images;
+
+    @Embedded
+    private Location preferredLocation;
+
+    @Builder.Default
+    @NotNull
+    @Column(name = "favorite_count")
+    private int favoriteCount = 0;
+
+    @Builder.Default
+    @NotNull
+    @Column(name = "chat_count")
+    private int chatCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -64,5 +89,25 @@ public class Product {
     void prePersist() {
         if (status == null) status = TradeStatus.ON_SALE;
         if (viewCount == null) viewCount = 0;
+    }
+  
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+    public void increaseFavoriteCount() {
+        this.favoriteCount++;
+    }
+
+    public void decreaseFavoriteCount() {
+        this.favoriteCount--;
+    }
+
+    public void increaseChatCount() {
+        this.chatCount++;
+    }
+
+    public void decreaseChatCount() {
+        this.chatCount--;
     }
 }
