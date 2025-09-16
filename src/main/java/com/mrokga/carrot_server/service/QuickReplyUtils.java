@@ -6,6 +6,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Method;
+import java.text.Normalizer;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class QuickReplyUtils {
@@ -39,14 +41,25 @@ public class QuickReplyUtils {
 
     /* -------------------- 텍스트 정규화 -------------------- */
 
-    /** 다중 공백을 1개로, 앞뒤 공백 제거. 개행은 1칸 공백으로 치환(중복 판정용). */
-    private static final Pattern MULTI_WS = Pattern.compile("\\s+");
+    /** 제로폭 문자 제거(보이지 않는 공백류) */
+    private static final Pattern ZERO_WIDTH = Pattern.compile("[\\u200B\\u200C\\u200D\\uFEFF]");
+    /** 모든 공백(개행 포함) */
+    private static final Pattern ANY_WS = Pattern.compile("\\s+");
 
-    /** 예: "안녕하세요  \n  반가워요" → "안녕하세요 반가워요" */
-    public static String normalizeForDuplicate(String raw) {
+
+    public static String normalizeForDuplicate(String raw) { // 메서드명 유지
         if (raw == null) return "";
-        String noNewlines = raw.replace('\n', ' ').replace('\r', ' ');
-        String trimmed = noNewlines.trim();
-        return MULTI_WS.matcher(trimmed).replaceAll(" ");
+        // 1) 유니코드 호환 정규화
+        String s = Normalizer.normalize(raw, Normalizer.Form.NFKC);
+        // 2) 제로폭 제거
+        s = ZERO_WIDTH.matcher(s).replaceAll("");
+        // 3) 개행 -> 공백
+        s = s.replace('\r', ' ').replace('\n', ' ');
+        // 4) 모든 공백 제거
+        s = ANY_WS.matcher(s).replaceAll("");
+        // 5) 소문자
+        s = s.toLowerCase(Locale.ROOT);
+        // 6) trim
+        return s.trim();
     }
 }

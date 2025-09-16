@@ -139,8 +139,12 @@ public class ChatMessageService {
             throw new AccessDeniedException("채팅방 메세지 조회 권한이 없습니다.");
         }
 
-        // 메시지 조회
-        List<ChatMessage> messages = chatMessageRepository.findByChatRoom_IdOrderByCreatedAtAscIdAsc(roomId);
+        // 내 커트라인 가져오기 (없으면 0)
+        Integer cutoff = chatRoomRepository.getDeleteCutoffForUser(roomId, requesterId);
+        int cutoffId = cutoff == null ? 0 : cutoff;
+
+        // ✅ 커트라인 이후 메시지만 조회
+        List<ChatMessage> messages = chatMessageRepository.findAfterCutoff(roomId, cutoffId);
 
         // ===== 여기서 읽음 처리 =====
         if (!messages.isEmpty()) {
