@@ -34,14 +34,17 @@ public class QuickReplyService {
         }
 
         if(msg.getMessageType() != MessageType.TEXT){
-            throw  new IllegalArgumentException("이미지는 자주 쓰는 문구로 추가할 수 없습니다.");
+            throw  new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미지는 자주 쓰는 문구로 추가할 수 없습니다.");
         }
 
         String body = msg.getMessage();
         String norm = QuickReplyUtils.normalizeForDuplicate(body);
 
-        if(norm.isBlank()){
+        if (body == null || body.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "빈 문자열 메세지. 추가 불가능");
+        }
+        if (norm.length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "문구는 최대 1000자까지 가능합니다.");
         }
 
         // 선조회
@@ -56,8 +59,18 @@ public class QuickReplyService {
         q.setBody(body);
         q.setBodyNorm(norm);
 
-        QuickReply saved = quickReplyRepository.saveAndFlush(q);
-        return QuickReplyAddResponseDto.created(saved.getId());
+        try {
+            QuickReply saved = quickReplyRepository.saveAndFlush(q);
+            return QuickReplyAddResponseDto.created(saved.getId());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 유니크 제약에 걸리면 이미 존재
+            var existing = quickReplyRepository.findByUserIdAndBodyNorm(userId, norm);
+            if (existing.isPresent()) {
+                return QuickReplyAddResponseDto.alreadyExists(existing.get().getId());
+            }
+            // 혹시 모를 다른 제약 오류는 409보다는 400/500으로 넘겨도 됨
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 같은 문구가 등록되어 있습니다.");
+        }
     }
 
     @Transactional(readOnly = true)

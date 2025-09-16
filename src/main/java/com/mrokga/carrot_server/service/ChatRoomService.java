@@ -102,23 +102,28 @@ public class ChatRoomService {
         return rooms.stream().map(room -> {
             ChatRoomResponseDto dto = toResponse(room); // 기존 필드 세팅
 
-            // 방의 마지막 메시지 (미리보기용)
-            chatMessageRepository.findTopByChatRoom_IdOrderByIdDesc(room.getId())
-                    .ifPresent(last -> {
-                        dto.setLastMessageId(last.getId());
-                        dto.setLastMessageSenderId(last.getUser().getId());
-                        dto.setLastMessageAt(last.getCreatedAt());
-                        dto.setLastMessagePreview(
-                                last.getMessageType() == MessageType.TEXT
-                                        ? abbreviate(last.getMessage(), 50)
-                                        : "[이미지]"
-                        );
+            // 방의 마지막 보이는 메시지 (커트라인 이후)
+            chatRoomRepository.findLastVisibleMessageId(room.getId(), userId)
+                    .ifPresent(lastId -> {
+                        chatMessageRepository.findById(lastId).ifPresent(last -> {
+                            dto.setLastMessageId(last.getId());
+                            dto.setLastMessageSenderId(last.getUser().getId());
+                            dto.setLastMessageAt(last.getCreatedAt());
+                            dto.setLastMessagePreview(
+                                    last.getMessageType() == MessageType.TEXT
+                                            ? abbreviate(last.getMessage(), 50)
+                                            : "[이미지]"
+                            );
+                        });
                     });
 
-            // 내가 보낸 마지막 메시지 ID
-            Integer lastMyMessageId = chatMessageRepository
-                    .findTopByChatRoom_IdAndUser_IdOrderByIdDesc(room.getId(), userId)
+            // 내가 보낸 마지막 메시지 id (커트라인 이후 기준)
+            Integer cutoff = chatRoomRepository.getDeleteCutoffForUser(room.getId(), userId);
+            int cutoffId = cutoff == null ? 0 : cutoff;
+            Integer lastMyMessageId = chatMessageRepository.findAfterCutoff(room.getId(), cutoffId).stream()
+                    .filter(m -> Objects.equals(m.getUser().getId(), userId))
                     .map(ChatMessage::getId)
+                    .reduce((first, second) -> second) // 마지막 값
                     .orElse(null);
 
             // 상대의 lastRead 포인터
@@ -133,21 +138,32 @@ public class ChatRoomService {
         }).toList();
     }
 
+    /**
+     * 채팅방 소프트 삭제 (내 쪽에서만 삭제)
+     * - DB에서 실제로 지우지 않고 내 커트라인을 마지막 메시지 id로 설정
+     * - 이후 이 방은 내 목록에서 안 보이고, 나중에 새 메시지가 오면 다시 등장
+     */
     @Transactional
     public void deleteRoom(Integer roomId, Integer userId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
 
         Integer buyerId = chatRoom.getBuyer().getId();
         Integer sellerId = chatRoom.getSeller().getId();
 
-        boolean isMember = Objects.equals(userId, buyerId) || Objects.equals(userId, sellerId);
-
-        if(!isMember){
+        if (!Objects.equals(userId, buyerId) && !Objects.equals(userId, sellerId)) {
             throw new AccessDeniedException("채팅방 삭제 권한이 없습니다.");
         }
 
-        chatRoomRepository.delete(chatRoom);
+        int lastMsgId = chatMessageRepository.findTopIdByRoomId(roomId).orElse(0);
+
+        if (Objects.equals(userId, buyerId)) {
+            chatRoomRepository.markBuyerDeleted(roomId, buyerId, lastMsgId);
+            chatRoomRepository.bumpBuyerLastRead(roomId, lastMsgId);
+        } else {
+            chatRoomRepository.markSellerDeleted(roomId, sellerId, lastMsgId);
+            chatRoomRepository.bumpSellerLastRead(roomId, lastMsgId);
+        }
     }
 
     private String abbreviate(String s, int max) {

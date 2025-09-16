@@ -3,12 +3,12 @@ package com.mrokga.carrot_server.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.sql.results.graph.Fetch;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "quick_reply")
+@Table(name = "quick_reply",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "body_norm"}))
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
