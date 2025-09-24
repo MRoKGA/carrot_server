@@ -93,7 +93,7 @@ public class ChatRoomService {
                     });
 
             return toResponse(chatRoom);
-        }catch(DataIntegrityViolationException e){ // DB에 유니크 제약 걸어뒀으나, 혹시 모를 동시성 충돌 시 재조회
+        } catch(DataIntegrityViolationException e){ // DB에 유니크 제약 걸어뒀으나, 혹시 모를 동시성 충돌 시 재조회
             return chatRoomRepository.findByProduct_IdAndBuyer_IdAndSeller_Id(
                     product.getId(), buyer.getId(), seller.getId())
                     .map(this::toResponse)

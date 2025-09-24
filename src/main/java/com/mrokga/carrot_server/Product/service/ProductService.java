@@ -1,7 +1,7 @@
 package com.mrokga.carrot_server.Product.service;
 
 import com.mrokga.carrot_server.Product.dto.request.ChangeStatusRequestDto;
-import com.mrokga.carrot_server.Chat.dto.request.CreateProductRequestDto;
+import com.mrokga.carrot_server.Product.dto.request.CreateProductRequestDto;
 import com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.Product.entity.*;
 import com.mrokga.carrot_server.Product.repository.*;
