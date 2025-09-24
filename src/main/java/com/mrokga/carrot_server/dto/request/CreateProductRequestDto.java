@@ -50,8 +50,8 @@ public class CreateProductRequestDto {
     private Boolean isPriceSuggestable;
 
     @Schema(description = "상품 사진",
-            example = "[{\"imageUrl\":\"https://example.com/image1.png\",\"order\":1,\"isThumbnail\":true}," +
-                    "{\"imageUrl\":\"https://example.com/image2.png\",\"order\":2,\"isThumbnail\":false}]")
+            example = "[{\"imageUrl\":\"https://example.com/image1.png\",\"sortOrder\":0}," +
+                    "{\"imageUrl\":\"https://example.com/image2.png\",\"sortOrder\":1}]")
     private List<ProductImageRequestDto> images;
 
     @Schema(description = "거래 선호 지역",
