@@ -1,7 +1,6 @@
-package com.mrokga.carrot_server.Chat.dto.request;
+package com.mrokga.carrot_server.Product.dto.request;
 
 import com.mrokga.carrot_server.Region.dto.LocationDto;
-import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -50,8 +49,8 @@ public class CreateProductRequestDto {
     private Boolean isPriceSuggestable;
 
     @Schema(description = "상품 사진",
-            example = "[{\"imageUrl\":\"https://example.com/image1.png\",\"order\":1,\"isThumbnail\":true}," +
-                    "{\"imageUrl\":\"https://example.com/image2.png\",\"order\":2,\"isThumbnail\":false}]")
+            example = "[{\"imageUrl\":\"https://example.com/image1.png\",\"sortOrder\":0}," +
+                    "{\"imageUrl\":\"https://example.com/image2.png\",\"sortOrder\":1}]")
     private List<ProductImageRequestDto> images;
 
     @Schema(description = "거래 선호 지역",
