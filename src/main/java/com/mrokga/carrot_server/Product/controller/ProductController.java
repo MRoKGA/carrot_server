@@ -2,7 +2,7 @@ package com.mrokga.carrot_server.Product.controller;
 
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.Product.dto.request.ChangeStatusRequestDto;
-import com.mrokga.carrot_server.Chat.dto.request.CreateProductRequestDto;
+import com.mrokga.carrot_server.Product.dto.request.CreateProductRequestDto;
 import com.mrokga.carrot_server.Product.entity.Product;
 import com.mrokga.carrot_server.Product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,7 +1,6 @@
-package com.mrokga.carrot_server.Chat.dto.request;
+package com.mrokga.carrot_server.Product.dto.request;
 
 import com.mrokga.carrot_server.Region.dto.LocationDto;
-import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
