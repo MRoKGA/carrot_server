@@ -63,6 +63,7 @@ public class Product {
     private Integer viewCount = 0;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC") // ← 조회 시 항상 업로드 순서대로
     @JsonManagedReference
     private List<ProductImage> images;
 

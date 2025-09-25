@@ -47,44 +47,60 @@ public class ProductController {
 
     // 신규: 멀티파트 한방 등록(JSON + 파일)
     @PostMapping(value = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "상품 등록(멀티파트: JSON + 이미지 파일)",
-            description = "{\n" +
-                    "  \"userId\": 11,\n" +
-                    "  \"categoryId\": 1,\n" +
-                    "  \"regionId\": 366,\n" +
-                    "  \"title\": \"로지텍마우스\",\n" +
-                    "  \"description\": \"로지텍마우스\",\n" +
-                    "  \"isFree\": false,\n" +
-                    "  \"price\": 10000,\n" +
-                    "  \"isPriceSuggestable\": false,\n" +
-                    "  \"preferredLocation\": {\n" +
-                    "    \"latitude\": 37.5125541,\n" +
-                    "    \"longitude\": 126.9263706,\n" +
-                    "    \"name\": \"회기동\"\n" +
-                    "  },\n" +
-                    "  \"exposureRegions\": [\"회기동\"]\n" +
-                    "}")
+    @Operation(
+            summary = "상품 등록(멀티파트: JSON + 이미지 파일)",
+            description = """
+        폼 파트:
+        - meta: application/json (CreateProductRequestDto)
+        - images: file[] (여러 장 가능)
+        업로드된 이미지는 S3 URL로 변환되어 meta.images에 주입됩니다.
+        """
+    )
     public ResponseEntity<ApiResponseDto<?>> createMultipart(
-            @RequestPart("meta") String metaJson,              // ← String으로 받기
-            @RequestPart(value = "images", required = false) List<MultipartFile> images
+            @RequestPart("meta") String metaJson,                                // ← JSON 문자열로 받고
+            @RequestPart(value = "images", required = false) List<MultipartFile> images // ← 여러 장 파일
     ) throws Exception {
 
-        // JSON 문자열 → DTO
+        // 1) JSON 문자열 → DTO
         CreateProductRequestDto meta = new ObjectMapper().readValue(metaJson, CreateProductRequestDto.class);
 
+        // 2) 파일이 있으면 S3 업로드 + 이미지 DTO 주입
         if (images != null && !images.isEmpty()) {
+
+            // (선택) 간단한 이미지 MIME 검증
+            for (MultipartFile f : images) {
+                String ct = f.getContentType();
+                if (ct == null || !ct.startsWith("image/")) {
+                    throw new org.springframework.web.server.ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "이미지 파일만 업로드할 수 있습니다: " + f.getOriginalFilename());
+                }
+            }
+
+            // S3 업로드 (여러 장)
             List<String> urls = awsS3Service.uploadFile(images);
+
+            // 업로드 순서대로 sortOrder 지정, 첫 번째 이미지를 썸네일로
             AtomicInteger idx = new AtomicInteger(0);
-            var imageDtos = urls.stream().map(u -> {
-                var dto = new ProductImageRequestDto();
-                dto.setImageUrl(u);
-                dto.setSortOrder(idx.getAndIncrement());
-                return dto;
-            }).toList();
+            List<ProductImageRequestDto> imageDtos = urls.stream()
+                    .map(url -> {
+                        ProductImageRequestDto dto = new ProductImageRequestDto();
+                        dto.setImageUrl(url);
+                        dto.setSortOrder(idx.get());                 // 0,1,2...
+                        dto.setIsThumbnail(idx.get() == 0);          // 첫 번째만 썸네일
+                        idx.incrementAndGet();
+                        return dto;
+                    })
+                    .toList();
+
             meta.setImages(imageDtos);
+        } else {
+            meta.setImages(null); // 이미지 없이도 등록 가능하게
         }
 
+        // 3) 서비스로 위임(여러 장 저장 + 정렬/썸네일 처리)
         Product product = productService.createProduct(meta);
+
+        // 4) 응답
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", product));
     }
 
