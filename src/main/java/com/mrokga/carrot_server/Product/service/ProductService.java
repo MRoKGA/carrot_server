@@ -13,6 +13,9 @@ import com.mrokga.carrot_server.User.entity.User;
 import com.mrokga.carrot_server.User.repository.UserRepository;
 import com.mrokga.carrot_server.Region.entity.embeddable.Location;
 import com.mrokga.carrot_server.Product.enums.TradeStatus;
+import com.mrokga.carrot_server.Product.entity.Category;
+import com.mrokga.carrot_server.Product.repository.CategoryRepository;
+import com.mrokga.carrot_server.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +38,7 @@ public class ProductService {
     private final FavoriteRepository favoriteRepository;
     private final ProductExposureRegionRepository productExposureRegionRepository;
     private final UserRegionRepository userRegionRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public Product createProduct(CreateProductRequestDto req) {
@@ -87,7 +91,7 @@ public class ProductService {
             if (req.getExposureRegions() != null && !req.getExposureRegions().isEmpty()) {
                 List<ProductExposureRegion> exposureRegions = req.getExposureRegions().stream()
                         .map(item -> {
-                            Region entity = regionRepository.findByName(item).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
+                            Region entity = regionRepository.findByFullName(item).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
 
                             return ProductExposureRegion.builder()
                                     .product(product)
@@ -97,6 +101,12 @@ public class ProductService {
                         .toList();
 
                 productExposureRegionRepository.saveAll(exposureRegions);
+            }
+
+            Favorite favorite = favoriteRepository.findByUserIdAndCategoryId(req.getUserId(), req.getCategoryId());
+
+            if (favorite != null) {
+                notificationService.sendCategoryProductNotification(user, product);
             }
 
             return product;
@@ -201,23 +211,46 @@ public class ProductService {
     }
 
     @Transactional
-    public void toggleFavorite(int userId, int productId) {
-        Product product = productRepository.findById(productId).orElseThrow(() -> new EntityNotFoundException("[ProductService.toggleFavorite] Product not found"));
+    public void toggleFavorite(int userId, String type, int targetId) {
 
         User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("[ProductService.toggleFavorite] User not found"));
 
-        Favorite favorite = favoriteRepository.findByUserIdAndProductId(userId, productId);
+        switch (type.toUpperCase()) {
+            case "C" -> {
+                Category category = categoryRepository.findById(targetId).orElseThrow(() -> new EntityNotFoundException("[ProductService.toggleFavorite] Category not found"));
 
-        if (favorite == null) {
-            favoriteRepository.save(Favorite.builder()
-                    .product(product)
-                    .user(user)
-                    .build());
+                Favorite favorite = favoriteRepository.findByUserIdAndCategoryId(userId, category.getId());
 
-            product.increaseFavoriteCount();
-        } else {
-            favoriteRepository.delete(favorite);
-            product.decreaseFavoriteCount();
+                if (favorite == null) {
+                    favoriteRepository.save(Favorite.builder()
+                            .category(category)
+                            .user(user)
+                            .build());
+
+                } else {
+                    favoriteRepository.delete(favorite);
+                }
+            }
+
+            case "P" -> {
+                Product product = productRepository.findById(targetId).orElseThrow(() -> new EntityNotFoundException("[ProductService.toggleFavorite] Product not found"));
+
+                Favorite favorite = favoriteRepository.findByUserIdAndProductId(userId, targetId);
+
+                if (favorite == null) {
+                    favoriteRepository.save(Favorite.builder()
+                            .product(product)
+                            .user(user)
+                            .build());
+
+                    product.increaseFavoriteCount();
+                } else {
+                    favoriteRepository.delete(favorite);
+                    product.decreaseFavoriteCount();
+                }
+            }
+
+            default -> throw new RuntimeException("Invalid favorite type [" + type + "]");
         }
     }
 
@@ -227,5 +260,10 @@ public class ProductService {
         UserRegion userRegion = userRegionRepository.findActiveByUserId(userId).orElseThrow(() -> new EntityNotFoundException("[ProductService.getProductList] UserRegion not found"));
 
         return productRepository.findAllDtoByExposureRegion(userRegion.getRegion());
+    }
+
+    @Transactional
+    public List<ProductDetailResponseDto> searchProduct(String keyword) {
+        return productRepository.findAllByTitleContaining(keyword);
     }
 }

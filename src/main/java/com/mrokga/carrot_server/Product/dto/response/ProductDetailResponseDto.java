@@ -27,4 +27,32 @@ public class ProductDetailResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String imageUrl;
+
+    public ProductDetailResponseDto(
+            String title,
+            String description,
+            String userNickname,
+            String categoryName,
+            Integer price,
+            Boolean isFree,
+            TradeStatus status,
+            int favoriteCount,
+            int chatCount,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String imageUrl
+    ) {
+        this.title = title;
+        this.description = description;
+        this.userName = userNickname;
+        this.categoryName = categoryName;
+        this.price = price;
+        this.isFree = isFree;
+        this.status = status;
+        this.favoriteCount = favoriteCount;
+        this.chatCount = chatCount;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.imageUrl = imageUrl;
+    }
 }
