@@ -21,8 +21,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.Comparator;
 import java.util.List;
+import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -43,32 +45,51 @@ public class ProductService {
     @Transactional
     public Product createProduct(CreateProductRequestDto req) {
         try {
-
             log.info("[ProductService.createProduct] req = {}", req);
 
-            User user = userRepository.findById(req.getUserId()).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] User not found"));
+            // 1) 기본 엔티티 조회
+            User user = userRepository.findById(req.getUserId())
+                    .orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] User not found"));
 
-            Region region = regionRepository.findById(req.getRegionId()).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
+            Region region = regionRepository.findById(req.getRegionId())
+                    .orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
 
-            Category category = categoryRepository.findById(req.getCategoryId()).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Category not found"));
+            Category category = categoryRepository.findById(req.getCategoryId())
+                    .orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Category not found"));
 
-            AtomicInteger index = new AtomicInteger(0);
+            // 2) 이미지 매핑 (여러 장)
+            List<ProductImage> productImages = null;
+            if (req.getImages() != null && !req.getImages().isEmpty()) {
+                AtomicInteger index = new AtomicInteger(0);
+                // 썸네일 지정 여부 체크
+                boolean hasThumb = req.getImages().stream()
+                        .anyMatch(i -> Boolean.TRUE.equals(i.getIsThumbnail()));
 
-            List<ProductImage> productImages = req.getImages() != null ?
-                    req.getImages().stream()
-                            .map(imageDto -> ProductImage.builder()
-                                    .imageUrl(imageDto.getImageUrl())
-                                    .sortOrder(index.getAndIncrement())
-                                    .build())
-                            .toList() : null;
+                productImages = req.getImages().stream()
+                        .sorted(Comparator.comparingInt(ProductImageRequestDto::getSortOrder))
+                        .map(imageDto -> ProductImage.builder()
+                                .imageUrl(imageDto.getImageUrl())
+                                .sortOrder(index.getAndIncrement())
+                                .isThumbnail(
+                                        hasThumb
+                                                ? Boolean.TRUE.equals(imageDto.getIsThumbnail())
+                                                : index.get() == 1 // 썸네일 지정 없으면 첫 번째만 true
+                                )
+                                .build())
+                        .toList();
+            }
 
-            Location preferredLocation = req.getPreferredLocation() != null ?
-                    Location.builder()
-                            .latitude(req.getPreferredLocation().getLatitude())
-                            .longitude(req.getPreferredLocation().getLongitude())
-                            .name(req.getPreferredLocation().getName())
-                            .build() : null;
+            // 3) 희망 거래 위치
+            Location preferredLocation = null;
+            if (req.getPreferredLocation() != null) {
+                preferredLocation = Location.builder()
+                        .latitude(req.getPreferredLocation().getLatitude())
+                        .longitude(req.getPreferredLocation().getLongitude())
+                        .name(req.getPreferredLocation().getName())
+                        .build();
+            }
 
+            // 4) Product 생성
             Product product = Product.builder()
                     .user(user)
                     .region(region)
@@ -76,22 +97,27 @@ public class ProductService {
                     .title(req.getTitle())
                     .description(req.getDescription())
                     .isFree(req.getIsFree())
-                    .isPriceSuggestable((req.getIsPriceSuggestable()))
-                    .price(!req.getIsFree() ? req.getPrice() : 0)
+                    .isPriceSuggestable(req.getIsPriceSuggestable())
+                    .price(Boolean.TRUE.equals(req.getIsFree()) ? 0 : req.getPrice())
                     .images(productImages)
                     .preferredLocation(preferredLocation)
                     .build();
 
+            // 연관관계 설정
             if (productImages != null) {
                 productImages.forEach(img -> img.setProduct(product));
             }
 
+            // 5) 저장
             productRepository.save(product);
 
+            // 6) 노출 지역 저장
             if (req.getExposureRegions() != null && !req.getExposureRegions().isEmpty()) {
                 List<ProductExposureRegion> exposureRegions = req.getExposureRegions().stream()
                         .map(item -> {
-                            Region entity = regionRepository.findByFullName(item).orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
+
+                            Region entity = regionRepository.findByName(item)
+                                    .orElseThrow(() -> new EntityNotFoundException("[ProductService.createProduct] Region not found"));
 
                             return ProductExposureRegion.builder()
                                     .product(product)
@@ -110,8 +136,9 @@ public class ProductService {
             }
 
             return product;
+
         } catch (Exception e) {
-            log.error("[ProductService.createProduct] error occurred. {}", e.getMessage());
+            log.error("[ProductService.createProduct] error occurred. {}", e.getMessage(), e);
             return null;
         }
     }

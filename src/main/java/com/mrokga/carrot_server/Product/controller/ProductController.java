@@ -1,6 +1,9 @@
 package com.mrokga.carrot_server.Product.controller;
 
-import com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mrokga.carrot_server.Aws.Service.AwsS3Service;
+import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.Product.dto.request.ChangeStatusRequestDto;
 import com.mrokga.carrot_server.Product.dto.request.CreateProductRequestDto;
@@ -9,16 +12,21 @@ import com.mrokga.carrot_server.Product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import java.util.List;
 
@@ -30,16 +38,73 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final AwsS3Service awsS3Service;
 
+    // 기존 JSON 방식 유지 (@RequestBody) — 2-Step 등록용
     @PostMapping
-    @Operation(summary = "상품 등록", description = "상품 등록")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "상품 등록 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class)))
-    })
+    @Operation(summary = "상품 등록(JSON, 이미지 URL 포함)", description = "이미지를 먼저 /file/upload로 올리고, 반환된 S3 URL을 본 API에 images.imageUrl로 전달하세요.")
+    @ApiResponse(responseCode = "200", description = "상품 등록 성공", content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     public ResponseEntity<ApiResponseDto<?>> create(@RequestBody CreateProductRequestDto req) {
-
         Product product = productService.createProduct(req);
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", product));
+    }
 
+    // 신규: 멀티파트 한방 등록(JSON + 파일)
+    @PostMapping(value = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "상품 등록(멀티파트: JSON + 이미지 파일)",
+            description = """
+        폼 파트:
+        - meta: application/json (CreateProductRequestDto)
+        - images: file[] (여러 장 가능)
+        업로드된 이미지는 S3 URL로 변환되어 meta.images에 주입됩니다.
+        """
+    )
+    public ResponseEntity<ApiResponseDto<?>> createMultipart(
+            @RequestPart("meta") String metaJson,                                // ← JSON 문자열로 받고
+            @RequestPart(value = "images", required = false) List<MultipartFile> images // ← 여러 장 파일
+    ) throws Exception {
+
+        // 1) JSON 문자열 → DTO
+        CreateProductRequestDto meta = new ObjectMapper().readValue(metaJson, CreateProductRequestDto.class);
+
+        // 2) 파일이 있으면 S3 업로드 + 이미지 DTO 주입
+        if (images != null && !images.isEmpty()) {
+
+            // (선택) 간단한 이미지 MIME 검증
+            for (MultipartFile f : images) {
+                String ct = f.getContentType();
+                if (ct == null || !ct.startsWith("image/")) {
+                    throw new org.springframework.web.server.ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "이미지 파일만 업로드할 수 있습니다: " + f.getOriginalFilename());
+                }
+            }
+
+            // S3 업로드 (여러 장)
+            List<String> urls = awsS3Service.uploadFile(images);
+
+            // 업로드 순서대로 sortOrder 지정, 첫 번째 이미지를 썸네일로
+            AtomicInteger idx = new AtomicInteger(0);
+            List<ProductImageRequestDto> imageDtos = urls.stream()
+                    .map(url -> {
+                        ProductImageRequestDto dto = new ProductImageRequestDto();
+                        dto.setImageUrl(url);
+                        dto.setSortOrder(idx.get());                 // 0,1,2...
+                        dto.setIsThumbnail(idx.get() == 0);          // 첫 번째만 썸네일
+                        idx.incrementAndGet();
+                        return dto;
+                    })
+                    .toList();
+
+            meta.setImages(imageDtos);
+        } else {
+            meta.setImages(null); // 이미지 없이도 등록 가능하게
+        }
+
+        // 3) 서비스로 위임(여러 장 저장 + 정렬/썸네일 처리)
+        Product product = productService.createProduct(meta);
+
+        // 4) 응답
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", product));
     }
 
