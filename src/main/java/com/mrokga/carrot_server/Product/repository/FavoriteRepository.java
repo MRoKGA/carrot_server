@@ -6,5 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
-    public Favorite findByUserIdAndProductId(Integer userId, Integer productId);
+    Favorite findByUserIdAndProductId(Integer userId, Integer productId);
+
+    Favorite findByUserIdAndCategoryId(Integer userId, Integer categoryId);
 }

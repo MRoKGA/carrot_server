@@ -1,5 +1,6 @@
 package com.mrokga.carrot_server.Product.controller;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mrokga.carrot_server.Aws.Service.AwsS3Service;
 import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -135,8 +139,16 @@ public class ProductController {
     @Operation(summary = "찜하기", description = "찜하기")
     @PostMapping("/{productId}/favorite")
     public ResponseEntity<?> favoriteProduct(@Parameter(description = "유저 ID", example = "7") @RequestParam int userId, @Parameter(description = "상품 ID", example = "7") @PathVariable int productId) {
-        productService.toggleFavorite(userId, productId);
+        productService.toggleFavorite(userId, "P", productId);
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
+    }
+
+    @Operation(summary = "상품 이름 검색", description = "사용자가 입력한 상품 이름으로 상품 목록 검색")
+    @GetMapping("/search/{keyword}")
+    public ResponseEntity<?> searchProduct(@PathVariable String keyword) {
+        List<ProductDetailResponseDto> results = productService.searchProduct(keyword);
+
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", results));
     }
 }

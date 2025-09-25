@@ -28,6 +28,10 @@ public class Favorite {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
