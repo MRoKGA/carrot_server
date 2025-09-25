@@ -1,5 +1,7 @@
 package com.mrokga.carrot_server.mypage.controller;
 
+import com.mrokga.carrot_server.Product.service.ProductService;
+import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.mypage.dto.request.UserDetailRequestDto;
 import com.mrokga.carrot_server.mypage.dto.response.UserWithRegionsResponse;
 import com.mrokga.carrot_server.mypage.service.UserQueryService;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserQueryService userQueryService;
+    private final ProductService productService;
 
     @Operation(
             summary = "[GET] 사용자 + 동네 목록 조회",
@@ -116,5 +120,13 @@ public class UserController {
             @Valid @RequestBody UserDetailRequestDto dto
     ) {
         return ResponseEntity.ok(userQueryService.getUserWithRegions(dto.userId()));
+    }
+
+    @Operation(summary = "카테고리 찜하기", description = "카테고리 찜하기")
+    @PostMapping("/favoriteCategory/{categoryId}")
+    public ResponseEntity<?> favoriteCategory(@Parameter(description = "유저 ID", example = "7") @RequestParam int userId, @Parameter(description = "카테고리 ID", example = "1") @PathVariable int categoryId) {
+        productService.toggleFavorite(userId, "C", categoryId);
+
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
     }
 }

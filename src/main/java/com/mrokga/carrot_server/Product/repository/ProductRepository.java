@@ -36,6 +36,19 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     JOIN per.product p
     JOIN per.region r
     WHERE r = :region
-""")
+    """)
     List<ProductDetailResponseDto> findAllDtoByExposureRegion(@Param("region") Region region);
+
+    @Query("""
+    SELECT new com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto(
+        p.title, p.description, p.user.nickname, p.category.name,
+        p.price, p.isFree, p.status, p.favoriteCount, p.chatCount,
+        p.createdAt, p.updatedAt, i.imageUrl
+    )
+    FROM Product p
+    LEFT JOIN ProductImage i ON i.product = p AND i.sortOrder = 0
+    WHERE REPLACE(LOWER(p.title), ' ', '')
+    LIKE LOWER(CONCAT('%', REPLACE(:keyword, ' ', ''), '%'))
+    """)
+    List<ProductDetailResponseDto> findAllByTitleContaining(@Param("keyword") String keyword);
 }

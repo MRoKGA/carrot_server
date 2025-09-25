@@ -20,5 +20,6 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
-
+    org.hibernate.SQL: INFO
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
