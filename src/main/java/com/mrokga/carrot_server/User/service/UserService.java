@@ -7,6 +7,7 @@ import com.mrokga.carrot_server.Region.entity.UserRegion;
 import com.mrokga.carrot_server.Region.repository.RegionRepository;
 import com.mrokga.carrot_server.Region.repository.UserRegionRepository;
 import com.mrokga.carrot_server.User.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +39,7 @@ public class UserService {
 
         userRepository.save(user);
 
-        Region region = regionRepository.findByFullName(dto.getRegion());
+        Region region = regionRepository.findByFullName(dto.getRegion()).orElseThrow(() -> new EntityNotFoundException("[UserService.signup] Region not found"));
 //        List<UserRegion> userRegionList = userRegionRepository.findAllByUserId(user.getId());
 
         UserRegion userRegion = UserRegion.builder()
