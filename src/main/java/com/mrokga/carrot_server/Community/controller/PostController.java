@@ -61,12 +61,14 @@ public class PostController {
     }
 
     @GetMapping
-    @Operation(summary = "게시글 목록 조회", description = "특정 지역의 게시글 목록을 페이징 조회합니다. 카테고리 ID가 있으면 해당 카테고리로 필터링합니다.")
+    @Operation(summary = "게시글 목록 조회(지역, 카테고리, 검색키워드)", description = "특정 지역의 게시글 목록을 페이징 조회합니다. 카테고리/검색 키워드가 있으면 필터링합니다.")
     public ResponseEntity<ApiResponseDto<Page<PostListResponseDto>>> getPostList(
             @Parameter(description = "지역 ID", example = "10") @RequestParam Integer regionId,
             @Parameter(description = "카테고리 ID", example = "2") @RequestParam(required = false) Integer categoryId,
+            @Parameter(description = "검색 키워드", example = "맛집") @RequestParam(required = false) String keyword,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
-        Page<PostListResponseDto> result = postService.getPostList(regionId, categoryId, pageable);
+
+        Page<PostListResponseDto> result = postService.getPostList(regionId, categoryId, keyword, pageable);
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", result));
     }
 

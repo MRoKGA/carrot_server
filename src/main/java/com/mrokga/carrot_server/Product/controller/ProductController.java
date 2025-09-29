@@ -4,6 +4,7 @@ package com.mrokga.carrot_server.Product.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mrokga.carrot_server.Aws.Service.AwsS3Service;
 import com.mrokga.carrot_server.Product.dto.request.ProductImageRequestDto;
+import com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.Product.dto.request.ChangeStatusRequestDto;
 import com.mrokga.carrot_server.Product.dto.request.CreateProductRequestDto;
@@ -19,6 +20,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -146,8 +150,9 @@ public class ProductController {
 
     @Operation(summary = "상품 이름 검색", description = "사용자가 입력한 상품 이름으로 상품 목록 검색")
     @GetMapping("/search/{keyword}")
-    public ResponseEntity<?> searchProduct(@PathVariable String keyword) {
-        List<ProductDetailResponseDto> results = productService.searchProduct(keyword);
+    public ResponseEntity<?> searchProduct(@PathVariable String keyword,
+                                           @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+        Page<ProductDetailResponseDto> results = productService.searchProduct(keyword, pageable);
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", results));
     }

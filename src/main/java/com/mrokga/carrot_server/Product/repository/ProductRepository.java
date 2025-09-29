@@ -3,6 +3,8 @@ package com.mrokga.carrot_server.Product.repository;
 import com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.Product.entity.Product;
 import com.mrokga.carrot_server.Region.entity.Region;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,5 +52,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     WHERE REPLACE(LOWER(p.title), ' ', '')
     LIKE LOWER(CONCAT('%', REPLACE(:keyword, ' ', ''), '%'))
     """)
-    List<ProductDetailResponseDto> findAllByTitleContaining(@Param("keyword") String keyword);
+    Page<ProductDetailResponseDto> findAllByTitleContaining(@Param("keyword") String keyword,
+                                                            Pageable pageable);
 }

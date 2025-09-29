@@ -105,17 +105,17 @@ public class PostService {
 
     // 게시글 목록 조회(페이징)
     @Transactional(readOnly = true)
-    public Page<PostListResponseDto> getPostList(Integer regionId, Integer categoryId, Pageable pageable){
+    public Page<PostListResponseDto> getPostList(Integer regionId, Integer categoryId, String keyword, Pageable pageable){
         Region region = regionRepository.findById(regionId)
                 .orElseThrow(() -> new EntityNotFoundException("PostService.getPostList(): 지역 없음"));
 
         PostCategory category = null;
         if (categoryId != null) {
             category = postCategoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new EntityNotFoundException("카테고리 없음"));
+                    .orElseThrow(() -> new EntityNotFoundException("PostService.getPostList(): 카테고리 없음"));
         }
 
-        Page<Post> posts = postRepository.findByRegionAndOptionalCategory(region, category, pageable);
+        Page<Post> posts = postRepository.findByRegionAndOptionalCategoryAndKeyword(region, category, keyword, pageable);
 
         return posts.map(post -> PostListResponseDto.builder()
                 .id(post.getId())

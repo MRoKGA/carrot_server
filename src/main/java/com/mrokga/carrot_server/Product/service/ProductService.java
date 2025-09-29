@@ -19,6 +19,8 @@ import com.mrokga.carrot_server.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
@@ -289,8 +291,11 @@ public class ProductService {
         return productRepository.findAllDtoByExposureRegion(userRegion.getRegion());
     }
 
-    @Transactional
-    public List<ProductDetailResponseDto> searchProduct(String keyword) {
-        return productRepository.findAllByTitleContaining(keyword);
+    @Transactional(readOnly = true)
+    public Page<ProductDetailResponseDto> searchProduct(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Page.empty(pageable); // 빈 결과 반환
+        }
+        return productRepository.findAllByTitleContaining(keyword, pageable);
     }
 }

@@ -18,11 +18,15 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
         SELECT p FROM Post p
         WHERE p.region = :region
           AND (:category IS NULL OR p.postCategory = :category)
+          AND (:keyword IS NULL\s
+                             OR REPLACE(LOWER(p.title), ' ', '')\s
+                                LIKE LOWER(CONCAT('%', REPLACE(:keyword, ' ', ''), '%')))
         ORDER BY p.createdAt DESC
     """)
-    Page<Post> findByRegionAndOptionalCategory(
+    Page<Post> findByRegionAndOptionalCategoryAndKeyword(
             @Param("region") Region region,
             @Param("category") PostCategory category,
+            @Param("keyword") String keyword,
             Pageable pageable
     );
 }
