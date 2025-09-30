@@ -3,12 +3,18 @@ package com.mrokga.carrot_server.Product.dto.request;
 import com.mrokga.carrot_server.Product.enums.TradeStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Schema(description = "상품 거래 상태 변경 요청 DTO")
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ChangeStatusRequestDto {
 
     @NotNull

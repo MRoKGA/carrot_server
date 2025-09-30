@@ -185,4 +185,28 @@ public class ChatMessageService {
     }
 
 
+    @Transactional
+    public ChatMessage sendSystemMessage(ChatRoom room, String content) {
+        // 1) DB 저장
+        ChatMessage message = ChatMessage.builder()
+                .chatRoom(room)
+                .user(null) // 시스템 메시지라 User 없음
+                .messageType(MessageType.APPOINTMENT)
+                .message(content)
+                .build();
+
+        ChatMessage saved = chatMessageRepository.save(message);
+
+        // 2) DTO 변환
+        MessageResponseDto response = toResponse(saved);
+
+        // user == null 인 경우 프론트에서 시스템 메시지로 처리할 수 있게 분기
+        response.setSenderId(null);
+
+        // 3) 실시간 broadcast
+        messagingTemplate.convertAndSend("/sub/chat/room/" + room.getId(), response);
+
+        return saved;
+    }
+
 }

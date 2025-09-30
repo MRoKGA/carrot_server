@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum MessageType {
     TEXT("텍스트"),
-    IMAGE("이미지");
+    IMAGE("이미지"),
+    APPOINTMENT("약속");
 
     private final String type;
+
 }
