@@ -3,6 +3,8 @@ package com.mrokga.carrot_server.Community.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,4 +23,7 @@ public class EditPostRequestDto {
 
     @Schema(description = "수정할 내용", example = "주말 저녁에도 운영하는 카페 있으면 알려주세요~")
     private String content;
+
+    @Schema(description = "게시글 이미지 리스트 (업로드된 S3 URL, 순서 포함)")
+    private List<PostImageRequestDto> images;
 }
