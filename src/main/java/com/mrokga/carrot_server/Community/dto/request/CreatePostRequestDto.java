@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,4 +27,7 @@ public class CreatePostRequestDto {
 
     @Schema(description = "게시글 내용", example = "주말에 공부할 조용한 카페 찾습니다~")
     private String content;
+
+    @Schema(description = "게시글 이미지 리스트 (업로드된 S3 URL, 순서 포함)")
+    private List<PostImageRequestDto> images;
 }

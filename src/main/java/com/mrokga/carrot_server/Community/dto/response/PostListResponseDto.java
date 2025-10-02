@@ -40,4 +40,7 @@ public class PostListResponseDto {
 
     @Schema(description = "작성일시", example = "2025-09-23T10:30:00")
     private LocalDateTime createdAt;
+
+    @Schema(description = "썸네일 이미지 URL (없으면 null)")
+    private String thumbnailUrl;
 }

@@ -1,7 +1,10 @@
 package com.mrokga.carrot_server.Community.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mrokga.carrot_server.Aws.Service.AwsS3Service;
 import com.mrokga.carrot_server.Community.dto.request.CreatePostRequestDto;
 import com.mrokga.carrot_server.Community.dto.request.EditPostRequestDto;
+import com.mrokga.carrot_server.Community.dto.request.PostImageRequestDto;
 import com.mrokga.carrot_server.Community.dto.response.PostDetailResponseDto;
 import com.mrokga.carrot_server.Community.dto.response.PostListResponseDto;
 import com.mrokga.carrot_server.Community.service.PostService;
@@ -14,9 +17,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostController {
 
     private final PostService postService;
+    private final AwsS3Service awsS3Service;
 
     private Integer getCurrentUserId() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -36,12 +45,58 @@ public class PostController {
         return Integer.valueOf(auth.getName());
     }
 
+    // ✅ 2-Step 방식 (JSON-only)
     @PostMapping
     @Operation(summary = "게시글 작성", description = "사용자가 새로운 게시글을 작성합니다.")
     public ResponseEntity<ApiResponseDto<?>> createPost(@RequestBody CreatePostRequestDto dto){
         dto.setUserId(getCurrentUserId());
         postService.createPost(dto);
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success",null));
+    }
+
+    // ✅ 1-Step 방식 (멀티파트)
+    @PostMapping(value = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "게시글 작성(멀티파트: JSON + 이미지 파일)",
+            description = """
+            폼 파트:
+            - meta: application/json (CreatePostRequestDto)
+            - images: file[] (여러 장 가능)
+            업로드된 이미지는 S3 URL로 변환되어 meta.images에 자동 주입됩니다.
+            """
+    )
+    public ResponseEntity<ApiResponseDto<?>> createMultipart(
+            @RequestPart("meta") String metaJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) throws Exception {
+        // 1) JSON 문자열 → DTO 변환
+        CreatePostRequestDto dto = new ObjectMapper().readValue(metaJson, CreatePostRequestDto.class);
+        dto.setUserId(getCurrentUserId());
+
+        // 2) 파일이 있으면 업로드 후 DTO에 이미지 리스트 세팅
+        if (images != null && !images.isEmpty()) {
+            List<String> urls = awsS3Service.uploadFile(images);
+
+            AtomicInteger idx = new AtomicInteger(0);
+            List<PostImageRequestDto> imageDtos = urls.stream()
+                    .map(url -> PostImageRequestDto.builder()
+                            .imageUrl(url)
+                            .sortOrder(idx.get())
+                            .isThumbnail(idx.get() == 0) // 첫 번째 이미지를 썸네일
+                            .build())
+                    .peek(x -> idx.incrementAndGet())
+                    .toList();
+
+            dto.setImages(imageDtos);
+        } else {
+            dto.setImages(null);
+        }
+
+        // 3) 서비스 호출
+        postService.createPost(dto);
+
+        // 4) 응답
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
     }
 
     @PutMapping("/{postId}")
