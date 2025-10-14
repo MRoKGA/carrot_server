@@ -38,6 +38,9 @@ public class AuthService {
     @Value("${sms.sender}")
     private String sender;
 
+    public static final String DEFAULT_PROFILE_IMAGE =
+            "https://media.istockphoto.com/id/1223671392/ko/%EB%B2%A1%ED%84%B0/%EA%B8%B0%EB%B3%B8-%ED%94%84%EB%A1%9C%ED%95%84-%EC%82%AC%EC%A7%84-%EC%95%84%EB%B0%94%ED%83%80-%EC%82%AC%EC%A7%84-%EC%9E%90%EB%A6%AC-%ED%91%9C%EC%8B%9C%EC%9E%90-%EB%B2%A1%ED%84%B0-%EC%9D%BC%EB%9F%AC%EC%8A%A4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%85%98.jpg?s=612x612&w=0&k=20&c=Z1Yi41x1bDPNjBG5KAn51ZRFfslI4Pz01BOqaRjuzRk=";
+
     public void sendSms(String phoneNumber) {
 
         String code = generateCode();

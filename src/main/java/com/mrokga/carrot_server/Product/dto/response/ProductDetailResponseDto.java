@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 public class ProductDetailResponseDto {
-
+    private Integer id;
     private String title;
     private String description;
     private String userName;
@@ -29,6 +29,7 @@ public class ProductDetailResponseDto {
     private String imageUrl;
 
     public ProductDetailResponseDto(
+            Integer id,
             String title,
             String description,
             String userNickname,
@@ -38,10 +39,12 @@ public class ProductDetailResponseDto {
             TradeStatus status,
             int favoriteCount,
             int chatCount,
+            String regionName,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             String imageUrl
     ) {
+        this.id = id;
         this.title = title;
         this.description = description;
         this.userName = userNickname;
@@ -51,8 +54,10 @@ public class ProductDetailResponseDto {
         this.status = status;
         this.favoriteCount = favoriteCount;
         this.chatCount = chatCount;
+        this.regionName = regionName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.imageUrl = imageUrl;
     }
 }
+

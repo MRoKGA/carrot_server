@@ -27,12 +27,12 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("""
     SELECT new com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto(
-        p.title, p.description, p.user.nickname, r.name, p.category.name,
-        p.price, p.isFree, p.status, p.favoriteCount, p.chatCount, p.createdAt, p.updatedAt,
+        p.id, p.title, p.description, p.user.nickname, r.name, p.category.name,
+        p.price, p.isFree, p.status, p.favoriteCount, p.chatCount,
+        p.createdAt, p.updatedAt,
         (SELECT i.imageUrl
-             FROM ProductImage i
-             WHERE i.product = p AND i.sortOrder = 0
-        )
+         FROM ProductImage i
+         WHERE i.product = p AND i.sortOrder = 0)
     )
     FROM ProductExposureRegion per
     JOIN per.product p
@@ -41,10 +41,11 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     """)
     List<ProductDetailResponseDto> findAllDtoByExposureRegion(@Param("region") Region region);
 
+
     @Query("""
     SELECT new com.mrokga.carrot_server.Product.dto.response.ProductDetailResponseDto(
-        p.title, p.description, p.user.nickname, p.category.name,
-        p.price, p.isFree, p.status, p.favoriteCount, p.chatCount,
+        p.id, p.title, p.description, p.user.nickname, p.category.name,
+        p.price, p.isFree, p.status, p.favoriteCount, p.chatCount, p.region.name,
         p.createdAt, p.updatedAt, i.imageUrl
     )
     FROM Product p
@@ -54,4 +55,5 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     """)
     Page<ProductDetailResponseDto> findAllByTitleContaining(@Param("keyword") String keyword,
                                                             Pageable pageable);
+
 }

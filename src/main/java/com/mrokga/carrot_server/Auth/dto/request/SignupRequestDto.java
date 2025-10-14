@@ -2,9 +2,11 @@ package com.mrokga.carrot_server.Auth.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
+import lombok.Setter;
 
 @Schema(description = "회원가입 요청 DTO")
 @Getter
+@Setter
 public class SignupRequestDto {
 
     @Schema(description = "동네 이름", example = "서울 동작구 대방동")
@@ -16,6 +18,6 @@ public class SignupRequestDto {
     @Schema(description = "닉네임", example = "닉네임")
     private String nickname;
 
-    @Schema(description = "프로필 사진 url", example = "url")
+    @Schema(hidden = true)
     private String profileImageUrl;
 }

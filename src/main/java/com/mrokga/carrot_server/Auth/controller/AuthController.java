@@ -1,5 +1,7 @@
 package com.mrokga.carrot_server.Auth.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mrokga.carrot_server.Aws.Service.AwsS3Service;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.User.dto.UserDto;
 import com.mrokga.carrot_server.Auth.dto.request.SignupRequestDto;
@@ -21,8 +23,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,6 +37,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final AwsS3Service awsS3Service;
 
     @PostMapping("/send")
     @Operation(summary = "인증번호 sms 발송", description = "사용자 휴대폰 번호로 인증번호 sms 발송")
@@ -100,20 +105,31 @@ public class AuthController {
     }
 
 
-    @PostMapping("/signup")
-    @Operation(summary = "회원가입 요청", description = "회원가입 요청")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "회원가입 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class), examples = {
-                    @ExampleObject(value = """
-                            { "code": 200, "message": "success", "data": "user 정보" }
-                            """)
-            }))
-    })
-    public ResponseEntity<ApiResponseDto<User>> signup(@RequestBody SignupRequestDto request) {
-        User user = userService.signup(request);
+    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponseDto<User>> signup(
+            // 1. JSON 데이터를 String으로 받도록 변경
+            @RequestPart("request") String requestJson,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) throws Exception { // 👈 throws Exception 추가
 
+        // 2. ObjectMapper를 사용해 DTO로 직접 변환
+        ObjectMapper objectMapper = new ObjectMapper();
+        SignupRequestDto request = objectMapper.readValue(requestJson, SignupRequestDto.class);
+
+        // --- 이하 로직은 기존과 동일 ---
+        String profileImageUrl;
+
+        if (profileImage != null && !profileImage.isEmpty()) {
+            profileImageUrl = awsS3Service.uploadOne(profileImage);
+        } else {
+            profileImageUrl = AuthService.DEFAULT_PROFILE_IMAGE;
+        }
+
+        request.setProfileImageUrl(profileImageUrl);
+
+        User user = userService.signup(request);
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", user));
     }
+
 
     @PostMapping("/resend")
     @Operation(summary = "인증번호 sms 재발송", description = "사용자 휴대폰 번호로 인증번호 sms 재발송")
