@@ -16,6 +16,8 @@ import com.mrokga.carrot_server.Product.enums.TradeStatus;
 import com.mrokga.carrot_server.Product.entity.Category;
 import com.mrokga.carrot_server.Product.repository.CategoryRepository;
 import com.mrokga.carrot_server.notification.service.NotificationService;
+import com.mrokga.carrot_server.transaction.entity.Transaction;
+import com.mrokga.carrot_server.transaction.repository.TransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

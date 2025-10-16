@@ -64,3 +64,10 @@ jwt:
   secret: ${JWT_SECRET}
   access-expiration: 15m    # 15분
   refresh-expiration: 14d   # 14일
+
+
+kakaopay:
+  host: https://kapi.kakao.com
+  cid: TC0ONETIME
+  admin-key: 29924c44406ee8cf5f986b861a44da8f
+  base-url: http://localhost:8080/payment/kakao
