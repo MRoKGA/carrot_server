@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.api.dto;
 
-import com.mrokga.carrot_server.Auth.dto.response.LoginResponseDto;
+import com.mrokga.carrot_server.auth.dto.response.LoginResponseDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

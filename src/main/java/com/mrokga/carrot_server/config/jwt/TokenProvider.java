@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.config.jwt;
 
-import com.mrokga.carrot_server.User.entity.User;
+import com.mrokga.carrot_server.user.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
