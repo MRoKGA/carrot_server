@@ -1,6 +1,5 @@
 package com.mrokga.carrot_server.community.service;
 
-//import com.mrokga.carrot_server.aws.service.AwsS3Service;
 import com.mrokga.carrot_server.aws.service.AwsS3Service;
 import com.mrokga.carrot_server.community.dto.request.CreatePostRequestDto;
 import com.mrokga.carrot_server.community.dto.request.EditPostRequestDto;

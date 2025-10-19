@@ -2,7 +2,7 @@ package com.mrokga.carrot_server.product.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.mrokga.carrot_server.aws.service.AwsS3Service;
+import com.mrokga.carrot_server.aws.service.AwsS3Service;
 import com.mrokga.carrot_server.product.dto.request.ProductImageRequestDto;
 import com.mrokga.carrot_server.product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProductController {
 
     private final ProductService productService;
-//    private final AwsS3Service awsS3Service;
+    private final AwsS3Service awsS3Service;
 
     // 기존 JSON 방식 유지 (@RequestBody) — 2-Step 등록용
     @PostMapping
