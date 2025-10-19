@@ -65,6 +65,7 @@ public class Post {
     private LocalDateTime updatedAt;
 
     // Post ↔ PostImage 매핑
+    @Builder.Default
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<PostImage> images = new ArrayList<>();

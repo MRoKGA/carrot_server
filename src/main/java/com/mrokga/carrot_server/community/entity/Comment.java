@@ -30,6 +30,7 @@ public class Comment {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
+    @Builder.Default
     @Column(name = "like_count")
     private int likeCount = 0;
 

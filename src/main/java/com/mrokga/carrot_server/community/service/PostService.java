@@ -1,6 +1,7 @@
 package com.mrokga.carrot_server.community.service;
 
 //import com.mrokga.carrot_server.aws.service.AwsS3Service;
+import com.mrokga.carrot_server.aws.service.AwsS3Service;
 import com.mrokga.carrot_server.community.dto.request.CreatePostRequestDto;
 import com.mrokga.carrot_server.community.dto.request.EditPostRequestDto;
 import com.mrokga.carrot_server.community.dto.response.CommentResponseDto;
@@ -36,7 +37,7 @@ public class PostService {
     private final PostCategoryRepository postCategoryRepository;
     private final UserRepository userRepository;
     private final RegionRepository regionRepository;
-//    private final AwsS3Service awsS3Service;
+    private final AwsS3Service awsS3Service;
 
     // 게시글 작성
     public void createPost(CreatePostRequestDto dto){

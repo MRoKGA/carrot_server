@@ -27,9 +27,11 @@ public class UserRegion {
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
 
+    @Builder.Default
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = false;
 
