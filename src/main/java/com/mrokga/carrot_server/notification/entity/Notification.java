@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.notification.entity;
 
-import com.mrokga.carrot_server.User.entity.User;
+import com.mrokga.carrot_server.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

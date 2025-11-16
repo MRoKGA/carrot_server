@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.mypage.dto.response;
 
-import com.mrokga.carrot_server.User.entity.User;
+import com.mrokga.carrot_server.user.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;

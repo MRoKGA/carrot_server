@@ -113,6 +113,8 @@ jobs:
             SMS_API_KEY=${{ secrets.SMS_API_KEY }}
             SMS_SECRET_KEY=${{ secrets.SMS_SECRET_KEY }}
             SMS_SENDER=${{ secrets.SMS_SENDER }}
+            ACCESS_KEY=${{ secrets.ACCESS_KEY }}
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
             EOT'
             sudo chmod 600 /opt/carrot/.env
             sudo sed -i "s/\r$//" /opt/carrot/.env

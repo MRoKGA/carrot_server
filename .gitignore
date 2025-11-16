@@ -37,3 +37,8 @@ out/
 .vscode/
 
 #application.yml
+
+
+# macOS Finder
+.DS_Store
+**/.DS_Store

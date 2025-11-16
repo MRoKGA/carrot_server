@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.mypage.dto.response;
 
-import com.mrokga.carrot_server.Region.entity.Region;
+import com.mrokga.carrot_server.region.entity.Region;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(name = "RegionSummaryDto", description = "행정동(Region) 기본 정보")

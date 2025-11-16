@@ -1,6 +1,6 @@
 package com.mrokga.carrot_server.mypage.controller;
 
-import com.mrokga.carrot_server.Product.service.ProductService;
+import com.mrokga.carrot_server.product.service.ProductService;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.mypage.dto.request.UserDetailRequestDto;
 import com.mrokga.carrot_server.mypage.dto.response.UserWithRegionsResponse;

@@ -2,7 +2,6 @@ package com.mrokga.carrot_server.payment.entity;
 
 import com.mrokga.carrot_server.payment.enums.PaymentMethod;
 import com.mrokga.carrot_server.payment.enums.PaymentStatus;
-import com.mrokga.carrot_server.transaction.entity.Transaction;
 import jakarta.persistence.*;
 import lombok.*;
 

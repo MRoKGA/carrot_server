@@ -6,6 +6,9 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    multipart:
+      max-file-size: 10MB // 업로드할 수 있는 개별 파일의 최대 크기. 기본 1MB
+      max-request-size: 10MB //multipart/form-data 요청의 최대 허용 크기. 기본 10MB
   # Nginx 뒤라면 'native' 추천. 프록시가 없다면 framework도 가능
   forward-headers-strategy: native
 
@@ -64,6 +67,19 @@ jwt:
   secret: ${JWT_SECRET}
   access-expiration: 15m    # 15분
   refresh-expiration: 14d   # 14일
+
+# AWS S3
+cloud:
+  aws:
+    credentials:
+      access-key: ${ACCESS_KEY}
+      secret-key: ${SECRET_KEY}
+    region:
+      static: ap-northeast-2  # 버킷의 리전
+    s3:
+      bucket: mrokga-carrot2   # 버킷 이름
+    stack:
+      auto: false
 
 
 kakaopay:

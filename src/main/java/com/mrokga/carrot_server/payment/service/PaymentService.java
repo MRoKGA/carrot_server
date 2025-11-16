@@ -7,8 +7,6 @@ import com.mrokga.carrot_server.payment.entity.Payment;
 import com.mrokga.carrot_server.payment.enums.PaymentMethod;
 import com.mrokga.carrot_server.payment.enums.PaymentStatus;
 import com.mrokga.carrot_server.payment.repository.PaymentRepository;
-import com.mrokga.carrot_server.transaction.entity.Transaction;
-import com.mrokga.carrot_server.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

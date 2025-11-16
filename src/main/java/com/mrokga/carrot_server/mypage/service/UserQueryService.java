@@ -1,12 +1,12 @@
 package com.mrokga.carrot_server.mypage.service;
 
-import com.mrokga.carrot_server.User.entity.User;
-import com.mrokga.carrot_server.Region.entity.UserRegion;
+import com.mrokga.carrot_server.user.entity.User;
+import com.mrokga.carrot_server.region.entity.UserRegion;
 import com.mrokga.carrot_server.mypage.dto.response.UserRegionDto;
 import com.mrokga.carrot_server.mypage.dto.response.UserSummaryDto;
 import com.mrokga.carrot_server.mypage.dto.response.UserWithRegionsResponse;
-import com.mrokga.carrot_server.Region.repository.UserRegionRepository;
-import com.mrokga.carrot_server.User.repository.UserRepository;
+import com.mrokga.carrot_server.region.repository.UserRegionRepository;
+import com.mrokga.carrot_server.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
