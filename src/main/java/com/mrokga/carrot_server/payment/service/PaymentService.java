@@ -7,7 +7,10 @@ import com.mrokga.carrot_server.payment.entity.Payment;
 import com.mrokga.carrot_server.payment.enums.PaymentMethod;
 import com.mrokga.carrot_server.payment.enums.PaymentStatus;
 import com.mrokga.carrot_server.payment.repository.PaymentRepository;
+import com.mrokga.carrot_server.transaction.entity.Transaction;
+import com.mrokga.carrot_server.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +28,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
@@ -44,10 +48,21 @@ public class PaymentService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    private HttpHeaders buildKakaoHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "KakaoAK " + kakaoAdminKey);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        return headers;
+    }
+
     // ✅ 카카오페이 결제 준비
     public KakaoReadyResponse kakaoReadyPayment(Integer transactionId) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+
+        if (paymentRepository.findByTransaction(transaction).isPresent()) {
+            throw new IllegalStateException("이미 결제가 진행 중인 거래입니다.");
+        }
 
         String url = kakaoHost + "/v1/payment/ready";
 
@@ -71,13 +86,19 @@ public class PaymentService {
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         Map<String, Object> body = response.getBody();
-        String redirectUrl = (String) response.getBody().get("next_redirect_pc_url");
+
+        if (response.getStatusCode().isError() || body == null) {
+            throw new IllegalStateException("카카오페이 결제 준비 실패: " + body.get("msg"));
+        }
+
+        log.info("[KakaoPay] Ready - transactionId={}, tid={}", transactionId, body.get("tid"));
 
         Payment payment = Payment.builder()
                 .transaction(transaction)
                 .method(PaymentMethod.KAKAOPAY)
                 .status(PaymentStatus.READY)
                 .amount(transaction.getProduct().getPrice())
+                .tid((String) body.get("tid"))
                 .completedAt(null)
                 .build();
         paymentRepository.save(payment);
@@ -98,6 +119,10 @@ public class PaymentService {
         Payment payment = paymentRepository.findByTransaction(transaction)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
 
+        if (payment.getStatus() == PaymentStatus.APPROVED) {
+            throw new IllegalStateException("이미 승인된 결제입니다.");
+        }
+
         String url = kakaoHost + "/v1/payment/approve";
 
         HttpHeaders headers = new HttpHeaders();
@@ -115,6 +140,14 @@ public class PaymentService {
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         Map<String, Object> body = response.getBody();
+
+        int kakaoAmount = (Integer) ((Map<String, Object>) body.get("amount")).get("total");
+        int expectedAmount = transaction.getProduct().getPrice();
+        if (kakaoAmount != expectedAmount) {
+            throw new IllegalStateException("결제 금액 불일치 (expected=" + expectedAmount + ", kakao=" + kakaoAmount + ")");
+        }
+
+        log.info("[KakaoPay] Approved - transactionId={}, tid={}", transactionId, tid);
 
         payment.setStatus(PaymentStatus.APPROVED);
         payment.setCompletedAt(LocalDateTime.now());
@@ -150,6 +183,15 @@ public class PaymentService {
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         Map<String, Object> body = response.getBody();
+
+        Payment payment = paymentRepository.findByTid(tid)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
+
+        payment.setStatus(PaymentStatus.CANCELED);
+        payment.setCompletedAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        log.info("[KakaoPay] Canceled - tid={}", tid);
 
         return KakaoCancelResponse.builder()
                 .tid((String) body.get("tid"))

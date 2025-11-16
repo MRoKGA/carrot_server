@@ -19,7 +19,7 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     // 결제 준비
-    @GetMapping("/kakao/ready/{transactionId}")
+    @PostMapping("/kakao/ready/{transactionId}")
     public KakaoReadyResponse kakaoReady(@PathVariable Integer transactionId) {
         return paymentService.kakaoReadyPayment(transactionId);
     }

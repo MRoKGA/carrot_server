@@ -1,21 +1,23 @@
 package com.mrokga.carrot_server.product.service;
 
+import com.mrokga.carrot_server.notification.service.NotificationService;
 import com.mrokga.carrot_server.product.dto.request.ChangeStatusRequestDto;
 import com.mrokga.carrot_server.product.dto.request.CreateProductRequestDto;
+import com.mrokga.carrot_server.product.dto.request.ProductImageRequestDto;
+import com.mrokga.carrot_server.product.dto.response.ChangeStatusResponseDto;
 import com.mrokga.carrot_server.product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.product.entity.*;
+import com.mrokga.carrot_server.product.enums.TradeStatus;
 import com.mrokga.carrot_server.product.repository.*;
 import com.mrokga.carrot_server.region.entity.Region;
 import com.mrokga.carrot_server.region.entity.UserRegion;
+import com.mrokga.carrot_server.region.entity.embeddable.Location;
 import com.mrokga.carrot_server.region.repository.RegionRepository;
 import com.mrokga.carrot_server.region.repository.UserRegionRepository;
+import com.mrokga.carrot_server.transaction.entity.Transaction;
+import com.mrokga.carrot_server.transaction.repository.TransactionRepository;
 import com.mrokga.carrot_server.user.entity.User;
 import com.mrokga.carrot_server.user.repository.UserRepository;
-import com.mrokga.carrot_server.region.entity.embeddable.Location;
-import com.mrokga.carrot_server.product.enums.TradeStatus;
-import com.mrokga.carrot_server.product.entity.Category;
-import com.mrokga.carrot_server.product.repository.CategoryRepository;
-import com.mrokga.carrot_server.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,10 +25,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Comparator;
 import java.util.List;
-import com.mrokga.carrot_server.product.dto.request.ProductImageRequestDto;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -157,7 +158,7 @@ public class ProductService {
      * 거래완료 -> 판매중: transaction 삭제, 리뷰가 있을 경우 삭제, status 판매중으로 변경
      */
     @Transactional
-    public void changeStatus(ChangeStatusRequestDto req) {
+    public ChangeStatusResponseDto changeStatus(ChangeStatusRequestDto req) {
 
         Product product = productRepository.findById(req.getProductId()).orElseThrow(() -> new EntityNotFoundException("Product not found"));
 
@@ -184,6 +185,14 @@ public class ProductService {
                 }
 
                 transactionRepository.save(transaction);
+
+                return ChangeStatusResponseDto.builder()
+                        .productId(transaction.getProduct().getId())
+                        .sellerId(transaction.getSeller().getId())
+                        .buyerId(transaction.getBuyer().getId())
+                        .status(product.getStatus())
+                        .completedAt(transaction.getCompletedAt())
+                        .build();
             }
 
 
@@ -202,6 +211,14 @@ public class ProductService {
                 }
 
                 product.setStatus(req.getStatus());
+
+                return ChangeStatusResponseDto.builder()
+                        .productId(transaction.getProduct().getId())
+                        .sellerId(transaction.getSeller().getId())
+                        .buyerId(transaction.getBuyer().getId())
+                        .status(product.getStatus())
+                        .completedAt(transaction.getCompletedAt())
+                        .build();
             }
 
             case SOLD -> {
@@ -221,6 +238,14 @@ public class ProductService {
 //                    }
 
                     product.setStatus(req.getStatus());
+
+                    return ChangeStatusResponseDto.builder()
+                            .productId(transaction.getProduct().getId())
+                            .sellerId(transaction.getSeller().getId())
+                            .buyerId(transaction.getBuyer().getId())
+                            .status(product.getStatus())
+                            .completedAt(transaction.getCompletedAt())
+                            .build();
                 }
 
             }
@@ -228,6 +253,8 @@ public class ProductService {
             default -> throw new RuntimeException("Invalid status [" + status + "]");
 
         }
+
+        return null;
     }
 
     @Transactional
