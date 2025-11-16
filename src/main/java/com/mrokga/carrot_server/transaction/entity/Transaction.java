@@ -1,5 +1,6 @@
-package com.mrokga.carrot_server.product.entity;
+package com.mrokga.carrot_server.transaction.entity;
 
+import com.mrokga.carrot_server.product.entity.Product;
 import com.mrokga.carrot_server.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
