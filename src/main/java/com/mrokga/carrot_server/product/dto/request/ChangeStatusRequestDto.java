@@ -6,12 +6,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Schema(description = "상품 거래 상태 변경 요청 DTO")
 @Getter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -29,7 +31,7 @@ public class ChangeStatusRequestDto {
     @Schema(description = "거래 상태(ON_SALE, RESERVED, SOLD)", example = "RESERVED")
     private TradeStatus status;
 
-    @Schema(description = "구매자 id", example = "")
+    @Schema(description = "구매자 id", example = "8")
     private Integer buyerId; // nullable
 
     @Schema(description = "거래 완료 시각", example = "")

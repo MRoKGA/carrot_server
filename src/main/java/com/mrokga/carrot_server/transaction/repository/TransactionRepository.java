@@ -1,8 +1,8 @@
-package com.mrokga.carrot_server.product.repository;
+package com.mrokga.carrot_server.transaction.repository;
 
+import com.mrokga.carrot_server.transaction.entity.Transaction;
 import com.mrokga.carrot_server.mypage.dto.PurchasedItemDto;
 import com.mrokga.carrot_server.product.entity.Product;
-import com.mrokga.carrot_server.product.entity.Transaction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

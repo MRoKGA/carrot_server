@@ -153,22 +153,4 @@ public class ProductController {
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", results));
     }
-
-    @Operation(
-            summary = "상품 삭제",
-            description = "상품 등록자(판매자)만 삭제할 수 있습니다."
-    )
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDto<?>> deleteProduct(
-            @PathVariable int id,
-            @Parameter(description = "판매자(요청자) ID", example = "11")
-            @RequestParam int sellerId
-    ) {
-        productService.deleteProduct(id, sellerId);
-        return ResponseEntity.ok(
-                ApiResponseDto.success(HttpStatus.OK.value(), "success", null)
-        );
-    }
-
-
 }
