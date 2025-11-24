@@ -64,11 +64,21 @@ public class Post {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "deal_place", length = 100, nullable = true)
+    private String dealPlace;
+
+    @Column(name = "deal_place_lat", nullable = true)
+    private Double dealPlaceLat;
+
+    @Column(name = "deal_place_lng", nullable = true)
+    private Double dealPlaceLng;
+
     // Post ↔ PostImage 매핑
     @Builder.Default
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<PostImage> images = new ArrayList<>();
+
 
     // 편의 메소드
     public void increaseViewCount() { this.viewCount++; }

@@ -56,6 +56,9 @@ public class PostService {
                 .postCategory(postCategory)
                 .title(dto.getTitle())
                 .content(dto.getContent())
+                .dealPlace(normalizePlace(dto.getDealPlace()))
+                .dealPlaceLat(dto.getDealPlaceLat())
+                .dealPlaceLng(dto.getDealPlaceLng())
                 .build();
 
         // 2. 이미지가 있으면 PostImage 엔티티로 변환 후 매핑
@@ -92,6 +95,14 @@ public class PostService {
         post.setPostCategory(postCategory);
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
+
+
+        // ✅ 장소 업데이트: null 이면 “변경 안함”, 빈문자면 “삭제”
+        if (dto.getDealPlace() != null || dto.getDealPlaceLat() != null || dto.getDealPlaceLng() != null) {
+            post.setDealPlace(dto.getDealPlace());
+            post.setDealPlaceLat(dto.getDealPlaceLat());
+            post.setDealPlaceLng(dto.getDealPlaceLng());
+        }
 
         // ✅ 이미지 교체 로직
         if (dto.getImages() != null) {
@@ -239,6 +250,9 @@ public class PostService {
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .comments(commentDtos)
+                .dealPlaceLat(post.getDealPlaceLat())
+                .dealPlaceLng(post.getDealPlaceLng())
+                .dealPlace(post.getDealPlace())
                 .imageUrls(
                         post.getImages().stream()
                                 .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
@@ -265,5 +279,41 @@ public class PostService {
             postLikeRepository.delete(postLike);
             post.decreaseLikeCount();
         }
+    }
+
+
+    @Transactional(readOnly = true)
+    public Page<PostListResponseDto> getPostsByRegion(Integer regionId, Pageable pageable) {
+        Region region = regionRepository.findById(regionId)
+                .orElseThrow(() -> new EntityNotFoundException("PostService.getPostsByRegion(): 지역 없음"));
+
+        Page<Post> posts = postRepository.findByRegion(region, pageable);
+
+        return posts.map(post -> PostListResponseDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .contentPreview(post.getContent() != null && post.getContent().length() > 50
+                        ? post.getContent().substring(0, 50) + "..."
+                        : post.getContent())
+                .categoryName(post.getPostCategory().getName())
+                .nickname(post.getUser().getNickname())
+                .viewCount(post.getViewCount())
+                .likeCount(post.getLikeCount())
+                .commentCount(post.getCommentCount())
+                .createdAt(post.getCreatedAt())
+                .thumbnailUrl(
+                        post.getImages().stream()
+                                .filter(PostImage::isThumbnail)
+                                .map(PostImage::getImageUrl)
+                                .findFirst()
+                                .orElse(null)
+                )
+                .build());
+    }
+
+    private String normalizePlace(String s){
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

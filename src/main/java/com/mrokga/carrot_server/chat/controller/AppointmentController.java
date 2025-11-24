@@ -43,4 +43,10 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponseDto> cancel(@PathVariable Integer appointmentId) {
         return ResponseEntity.ok(appointmentService.cancelAppointment(appointmentId));
     }
+
+    @Operation(summary = "약속 조회", description = "채팅방 ID로 해당 약속 정보를 조회합니다.")
+    @GetMapping
+    public ResponseEntity<AppointmentResponseDto> getAppointment(@PathVariable Integer roomId) {
+        return ResponseEntity.ok(appointmentService.getAppointmentByChatRoomId(roomId));
+    }
 }

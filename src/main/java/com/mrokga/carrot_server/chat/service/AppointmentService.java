@@ -147,5 +147,22 @@ public class AppointmentService {
         return toDto(appointment);
     }
 
+    @Transactional(readOnly = true)
+    public AppointmentResponseDto getAppointmentByChatRoomId(Integer roomId) {
+        Appointment appointment = appointmentRepository.findByChatRoom_Id(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 채팅방에 약속이 없습니다."));
+
+        return AppointmentResponseDto.builder()
+                .id(appointment.getId())
+                .chatRoomId(appointment.getChatRoom().getId())
+                .proposerId(appointment.getProposer().getId())
+                .meetingTime(appointment.getMeetingTime())
+                .meetingPlace(appointment.getMeetingPlace())
+                .status(appointment.getStatus())
+                .createdAt(appointment.getCreatedAt())
+                .build();
+    }
+
+
 
 }

@@ -119,8 +119,9 @@ public class ProductController {
 
     @Operation(summary = "상품 목록 조회", description = "현재 위치에 노출 설정한 상품 목록 조회")
     @GetMapping("/list")
-    public ResponseEntity<ApiResponseDto<?>> getProductList(@Parameter(description = "유저 ID", example = "7") @RequestParam int userId) {
-        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", productService.getProductList(userId)));
+    public ResponseEntity<ApiResponseDto<?>> getProductList(@RequestParam int userId) {
+        var list = productService.getProductList(userId);
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", list));
     }
 
     @Operation(summary = "상품 상세 조회", description = "상품 상세 조회")
@@ -152,4 +153,22 @@ public class ProductController {
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", results));
     }
+
+    @Operation(
+            summary = "상품 삭제",
+            description = "상품 등록자(판매자)만 삭제할 수 있습니다."
+    )
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponseDto<?>> deleteProduct(
+            @PathVariable int id,
+            @Parameter(description = "판매자(요청자) ID", example = "11")
+            @RequestParam int sellerId
+    ) {
+        productService.deleteProduct(id, sellerId);
+        return ResponseEntity.ok(
+                ApiResponseDto.success(HttpStatus.OK.value(), "success", null)
+        );
+    }
+
+
 }

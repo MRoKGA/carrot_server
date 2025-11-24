@@ -26,4 +26,13 @@ public class EditPostRequestDto {
 
     @Schema(description = "게시글 이미지 리스트 (업로드된 S3 URL, 순서 포함)")
     private List<PostImageRequestDto> images;
+
+    @Schema(description = "거래 희망 장소(선택)", example = "회기역 1번 출구 앞", nullable = true)
+    private String dealPlace;
+
+    @Schema(description = "Lat", nullable = true)
+    private Double dealPlaceLat;
+
+    @Schema(description = "Lng", nullable = true)
+    private Double dealPlaceLng;
 }
