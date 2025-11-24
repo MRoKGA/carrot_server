@@ -48,6 +48,8 @@ public class ChatMessageController {
     }
 }
 
+
+
 /**
  * ✅ WebSocket/STOMP 용 Controller
  * - @RestController 대신 @Controller 사용

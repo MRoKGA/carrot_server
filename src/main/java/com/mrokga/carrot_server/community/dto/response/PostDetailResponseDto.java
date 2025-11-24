@@ -59,4 +59,13 @@ public class PostDetailResponseDto {
 
     @Schema(description = "게시글 이미지 URL 리스트")
     private List<String> imageUrls;
+
+    @Schema(description = "거래 희망 장소(선택)", example = "회기역 1번 출구", nullable = true)
+    private String dealPlace;
+
+    @Schema(description = "Lat", nullable = true)
+    private Double dealPlaceLat;
+
+    @Schema(description = "Lng", nullable = true)
+    private Double dealPlaceLng;
 }

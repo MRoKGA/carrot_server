@@ -187,10 +187,17 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessage sendSystemMessage(ChatRoom room, String content) {
+
+        // ✅ 문자열 리터럴 "System" 사용
+        User systemUser = userRepository.findByNickname("SYSTEM");
+        if (systemUser == null) {
+            throw new RuntimeException("시스템 계정을 찾을 수 없습니다.");
+        }
+
         // 1) DB 저장
         ChatMessage message = ChatMessage.builder()
                 .chatRoom(room)
-                .user(null) // 시스템 메시지라 User 없음
+                .user(systemUser)
                 .messageType(MessageType.APPOINTMENT)
                 .message(content)
                 .build();

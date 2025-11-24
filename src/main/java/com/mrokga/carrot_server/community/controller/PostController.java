@@ -140,4 +140,15 @@ public class PostController {
         postService.togglePostLike(postId, getCurrentUserId());
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
     }
+
+    @GetMapping("/region/{regionId}")
+    @Operation(summary = "지역별 게시글 목록 조회", description = "regionId로만 게시글을 페이징 조회합니다.")
+    public ResponseEntity<ApiResponseDto<Page<PostListResponseDto>>> getPostsByRegion(
+            @Parameter(description = "지역 ID", example = "10") @PathVariable Integer regionId,
+            @PageableDefault(size = 10, sort = "createdAt",
+                    direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+
+        Page<PostListResponseDto> result = postService.getPostsByRegion(regionId, pageable);
+        return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", result));
+    }
 }

@@ -6,6 +6,7 @@ import com.mrokga.carrot_server.product.dto.request.CreateProductRequestDto;
 import com.mrokga.carrot_server.product.dto.request.ProductImageRequestDto;
 import com.mrokga.carrot_server.product.dto.response.ChangeStatusResponseDto;
 import com.mrokga.carrot_server.product.dto.response.ProductDetailResponseDto;
+import com.mrokga.carrot_server.product.dto.response.ProductListItemDto;
 import com.mrokga.carrot_server.product.entity.*;
 import com.mrokga.carrot_server.product.enums.TradeStatus;
 import com.mrokga.carrot_server.product.repository.*;
@@ -311,11 +312,10 @@ public class ProductService {
     }
 
     @Transactional
-    public List<ProductDetailResponseDto> getProductList(int userId) {
-
-        UserRegion userRegion = userRegionRepository.findActiveByUserId(userId).orElseThrow(() -> new EntityNotFoundException("[ProductService.getProductList] UserRegion not found"));
-
-        return productRepository.findAllDtoByExposureRegion(userRegion.getRegion());
+    public List<ProductListItemDto> getProductList(int userId) {
+        UserRegion userRegion = userRegionRepository.findActiveByUserId(userId)
+                .orElseThrow(() -> new EntityNotFoundException("[ProductService.getProductList] UserRegion not found"));
+        return productRepository.findAllListItemByExposureRegion(userRegion.getRegion());
     }
 
     @Transactional(readOnly = true)
@@ -325,4 +325,32 @@ public class ProductService {
         }
         return productRepository.findAllByTitleContaining(keyword, pageable);
     }
+
+    @Transactional
+    public void deleteProduct(int productId, int sellerId) {
+        // 1) 상품 조회
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+
+        // 2) 소유자(판매자) 검증
+        if (product.getUser() == null || !product.getUser().getId().equals(sellerId)) {
+            throw new SecurityException("본인이 등록한 상품만 삭제할 수 있습니다.");
+        }
+
+        // (선택) 상태 제한: 판매완료는 삭제 금지하고 싶다면 주석 해제
+        // if (product.getStatus() == TradeStatus.SOLD) {
+        //     throw new IllegalStateException("거래 완료 상품은 삭제할 수 없습니다.");
+        // }
+
+        // 3) 연관 데이터 정리
+        transactionRepository.deleteByProduct(product);
+        favoriteRepository.deleteByProduct(product);
+        productExposureRegionRepository.deleteByProduct(product);
+        // 이미지(ProductImage)는 orphanRemoval=true, cascade=ALL 이므로 product 삭제 시 자동 정리
+
+        // 4) 상품 삭제
+        productRepository.delete(product);
+    }
+
+
 }

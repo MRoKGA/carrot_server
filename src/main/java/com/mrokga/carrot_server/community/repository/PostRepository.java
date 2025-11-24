@@ -29,4 +29,5 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+    Page<Post> findByRegion(Region region, Pageable pageable);
 }
