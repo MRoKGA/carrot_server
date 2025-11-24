@@ -10,7 +10,8 @@ import com.mrokga.carrot_server.mypage.dto.PurchasedItemDto;
 import com.mrokga.carrot_server.product.entity.Product;
 import com.mrokga.carrot_server.product.repository.FavoriteRepository;
 import com.mrokga.carrot_server.product.repository.ProductRepository;
-import com.mrokga.carrot_server.product.repository.TransactionRepository;
+
+import com.mrokga.carrot_server.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
