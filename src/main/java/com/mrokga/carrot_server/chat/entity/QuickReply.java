@@ -18,6 +18,7 @@ public class QuickReply {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // 유저 아이디
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 

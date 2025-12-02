@@ -16,7 +16,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Intege
 
     Optional<Appointment> findByChatRoom_Id(Integer chatRoomId);
 
-    // ✔ 나의 약속(채팅방 참여자이거나 제안자=나). 상태 필터 optional
+    //  나의 약속(채팅방 참여자이거나 제안자=나). 상태 필터 optional
     @Query("""
     SELECT a
     FROM Appointment a
