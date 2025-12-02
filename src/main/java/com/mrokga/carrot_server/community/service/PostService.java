@@ -61,11 +61,11 @@ public class PostService {
                 .dealPlaceLng(dto.getDealPlaceLng())
                 .build();
 
-        // 2. 이미지가 있으면 PostImage 엔티티로 변환 후 매핑
+        // 2. 이미지가 있으면 PostImage(Post 포함한 엔티티) 엔티티로 변환 후 매핑
         if (dto.getImages() != null && !dto.getImages().isEmpty()) {
             List<PostImage> postImages = dto.getImages().stream()
                     .map(imgDto -> PostImage.builder()
-                            .post(post)
+                            .post(post) // 1번에서 생성한 게시글 엔티티
                             .imageUrl(imgDto.getImageUrl())
                             .sortOrder(imgDto.getSortOrder() != null ? imgDto.getSortOrder() : 0)
                             .isThumbnail(imgDto.getIsThumbnail() != null && imgDto.getIsThumbnail())
@@ -97,14 +97,14 @@ public class PostService {
         post.setContent(dto.getContent());
 
 
-        // ✅ 장소 업데이트: null 이면 “변경 안함”, 빈문자면 “삭제”
+        // 장소 업데이트: null 이면 “변경 안함”, 빈문자면 “삭제”
         if (dto.getDealPlace() != null || dto.getDealPlaceLat() != null || dto.getDealPlaceLng() != null) {
             post.setDealPlace(dto.getDealPlace());
             post.setDealPlaceLat(dto.getDealPlaceLat());
             post.setDealPlaceLng(dto.getDealPlaceLng());
         }
 
-        // ✅ 이미지 교체 로직
+        // 이미지 교체 로직
         if (dto.getImages() != null) {
             // 기존 이미지들
             List<PostImage> oldImages = post.getImages();
@@ -114,7 +114,7 @@ public class PostService {
                     .map(img -> img.getImageUrl())
                     .toList();
 
-            // 삭제될 이미지 추출 = old(DB) list 에는 있는데 new list 에는 없음
+            // 삭제될 이미지 추출 = old list(DB) 에는 있는데 new list 에는 없는 이미지들
             List<PostImage> toDelete = oldImages.stream()
                     .filter(img -> !newUrls.contains(img.getImageUrl()))
                     .toList();
@@ -125,7 +125,7 @@ public class PostService {
                 post.getImages().remove(img);
             });
 
-            // 새로 추가된 이미지 = new list 에는 있는데 old(DB) list 에는 없음
+            // 새로 추가된 이미지 = new list 에는 있는데 old list(DB) 에는 없는 이미지들
             dto.getImages().forEach(imgDto -> {
                 boolean exists = oldImages.stream()
                         .anyMatch(img -> img.getImageUrl().equals(imgDto.getImageUrl()));
@@ -151,7 +151,7 @@ public class PostService {
             throw new SecurityException("PostService.deletePost(): 삭제 권한 없음");
         }
 
-        // ✅ S3에서 이미지 삭제
+        // S3에서 이미지 삭제
         post.getImages().forEach(img -> awsS3Service.deleteFileByUrl(img.getImageUrl()));
 
         // 해당 게시글의 댓글 좋아요 삭제
@@ -170,7 +170,11 @@ public class PostService {
         postRepository.delete(post);
     }
 
-    // 게시글 목록 조회(페이징)
+    // 게시글 지역 & 카테고리 목록 조회(페이징)
+    /**
+     * 지역은 필수, 카테고리는 nullable
+     * 하나의 메서드로 지역만 필터 / 지역+카테고리 필터
+     */
     @Transactional(readOnly = true)
     public Page<PostListResponseDto> getPostList(Integer regionId, Integer categoryId, String keyword, Pageable pageable){
         Region region = regionRepository.findById(regionId)
@@ -216,11 +220,13 @@ public class PostService {
 
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
-        // 내가 좋아요 누른 댓글 ID들을 한 번에 조회
+        // 내가 좋아요 누른 댓글 ID 한 번에 조회
         List<Integer> commentIds = comments.stream().map(Comment::getId).toList();
         List<Integer> likedIds = commentLikeRepository.findLikedCommentIds(me, commentIds);
         Set<Integer> likedIdSet = likedIds.stream().collect(Collectors.toSet());
 
+        // 게시글에 달린 댓글들 조회
+        // 이떄 내가 좋아요 누른 댓글 ID 한 번에 조회한 것들로 내 좋아요 여부 판단
         List<CommentResponseDto> commentDtos = comments.stream()
                 .map(c -> CommentResponseDto.builder()
                         .id(c.getId())
@@ -228,11 +234,12 @@ public class PostService {
                         .nickname(c.getUser().getNickname())
                         .content(c.getContent())
                         .likeCount(c.getLikeCount())
-                        .likedByMe(likedIdSet.contains(c.getId()))
+                        .likedByMe(likedIdSet.contains(c.getId())) // 댓글 좋아요 여부
                         .createdAt(c.getCreatedAt())
                         .build())
                 .toList();
 
+        // 게시글 좋아요 여부
         boolean likedByMe = postLikeRepository.findByUserIdAndPostId(me, postId) != null;
 
         return PostDetailResponseDto.builder()
@@ -282,6 +289,7 @@ public class PostService {
     }
 
 
+    // 게시글 지역별 조회
     @Transactional(readOnly = true)
     public Page<PostListResponseDto> getPostsByRegion(Integer regionId, Pageable pageable) {
         Region region = regionRepository.findById(regionId)
