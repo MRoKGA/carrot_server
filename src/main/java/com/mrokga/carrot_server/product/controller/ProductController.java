@@ -4,6 +4,7 @@ package com.mrokga.carrot_server.product.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mrokga.carrot_server.aws.service.AwsS3Service;
 import com.mrokga.carrot_server.product.dto.request.ProductImageRequestDto;
+import com.mrokga.carrot_server.product.dto.response.ChangeStatusResponseDto;
 import com.mrokga.carrot_server.product.dto.response.ProductDetailResponseDto;
 import com.mrokga.carrot_server.api.dto.ApiResponseDto;
 import com.mrokga.carrot_server.product.dto.request.ChangeStatusRequestDto;
@@ -15,11 +16,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -40,7 +44,12 @@ public class ProductController {
     private final ProductService productService;
     private final AwsS3Service awsS3Service;
 
-    // 기존 JSON 방식 유지 (@RequestBody) — 2-Step 등록용
+    /**
+     * 상품 등록 api (이미지 URL을 JSON 내부에 포함하는 2-step 방식)
+     * 이미지는 미리 S3에 업로드되어 URL 형태로 요청 본문에 포함되어야 함
+     * @param req 상품 생성 요청 DTO (이미지 URL 포함)
+     * @return 등록된 상품 정보
+     */
     @PostMapping
     @Operation(summary = "상품 등록(JSON, 이미지 URL 포함)", description = "이미지를 먼저 /file/upload로 올리고, 반환된 S3 URL을 본 API에 images.imageUrl로 전달하세요.")
     @ApiResponse(responseCode = "200", description = "상품 등록 성공", content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
@@ -49,7 +58,14 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", product));
     }
 
-    // 신규: 멀티파트 한방 등록(JSON + 파일)
+    /**
+     * 상품 정보와 이미지 파일을 한 번에 받아 처리하는 api
+     * 이미지 파일을 S3에 업로드 후, 반환된 URL을 DTO에 주입하여 상품 등록 서비스에 전달
+     * @param metaJson 상품 메타데이터 JSON 문자열 (CreateProductRequestDto)
+     * @param images 업로드할 이미지 파일 리스트
+     * @return 등록된 상품 정보
+     * @throws Exception JSON 파싱 오류 또는 파일 처리 오류
+     */
     @PostMapping(value = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "상품 등록(멀티파트: JSON + 이미지 파일)",
@@ -108,15 +124,36 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", product));
     }
 
+    /**
+     * 상품의 거래 상태(TradeStatus)를 변경하는 api
+     * @param req 상태 변경 요청 DTO
+     * @return 변경된 거래 상태 정보가 담긴 응답 DTO
+     */
     @Operation(summary = "상품 거래 상태 변경", description = "상품 거래 상태 변경")
     @PutMapping("/status")
     public ResponseEntity<?> changeStatus(@RequestBody ChangeStatusRequestDto req) {
 
         productService.changeStatus(req);
 
+        // 상품 상태 변경 로직을 호출하고 결과를 응답 DTO에 저장
+        ChangeStatusResponseDto response = productService.changeStatus(req);
+
+        // 상태 변경 후 상품 상세 정보를 리턴
+        Product product = productService.getProductDetail(req.getProductId());
+
+        if (product != null) {
+
+            return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", response));
+        }
+
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
     }
 
+    /**
+     * 사용자의 현재 위치를 기준으로 상품 목록을 조회하는 api
+     * @param userId 사용자의 ID
+     * @return 페이지네이션된 상품 목록 DTO
+     */
     @Operation(summary = "상품 목록 조회", description = "현재 위치에 노출 설정한 상품 목록 조회")
     @GetMapping("/list")
     public ResponseEntity<ApiResponseDto<?>> getProductList(@RequestParam int userId) {
@@ -124,6 +161,11 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", list));
     }
 
+    /**
+     * 상품의 상세 정보를 조회하는 api
+     * @param id 조회할 상품의 ID
+     * @return 상품 상세 정보 DTO
+     */
     @Operation(summary = "상품 상세 조회", description = "상품 상세 조회")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseDto<?>> getProductDetail(@Parameter(description = "상품 ID", example = "7") @PathVariable int id) {
@@ -137,6 +179,12 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseDto.error(HttpStatus.NOT_FOUND.value(), "not found"));
     }
 
+    /**
+     * 특정 상품을 찜하는 api. 토글 방식
+     * @param userId 사용자 ID
+     * @param productId 찜하기 대상 상품 ID
+     * @return 성공 응답 (상태 변경 완료)
+     */
     @Operation(summary = "찜하기", description = "찜하기")
     @PostMapping("/{productId}/favorite")
     public ResponseEntity<?> favoriteProduct(@Parameter(description = "유저 ID", example = "7") @RequestParam int userId, @Parameter(description = "상품 ID", example = "7") @PathVariable int productId) {
@@ -145,12 +193,41 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", null));
     }
 
-    @Operation(summary = "상품 이름 검색", description = "사용자가 입력한 상품 이름으로 상품 목록 검색")
-    @GetMapping("/search/{keyword}")
-    public ResponseEntity<?> searchProduct(@PathVariable String keyword,
-                                           @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+    /**
+     * 상품 이름 키워드를 기반으로 상품 목록을 검색하고 페이지네이션하여 반환하는 api
+     * @param keyword 검색할 상품 이름 키워드
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 한 페이지당 상품 개수
+     * @param sort 정렬 기준 필드
+     * @return 페이지네이션된 검색 결과 DTO
+     */
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "상품 검색 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.ApiPageProductResponse.class)))
+    })
+    public ResponseEntity<?> searchProduct(@Parameter(description = "검색할 키워드", example = "test") @PathVariable String keyword,
+                                           @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
+                                           @Parameter(description = "한 페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
+                                           @Parameter(description = "정렬 기준 (예: createdAt)", example = "createdAt") @RequestParam(defaultValue = "createdAt") String sort) {
+        // Pageable 객체 생성: 페이지 번호, 크기, 정렬 기준으로 구성
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt"));
         Page<ProductDetailResponseDto> results = productService.searchProduct(keyword, pageable);
 
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success", results));
+    }
+
+    @Operation(
+            summary = "상품 삭제",
+            description = "상품 등록자(판매자)만 삭제할 수 있습니다."
+    )
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponseDto<?>> deleteProduct(
+            @PathVariable int id,
+            @Parameter(description = "판매자(요청자) ID", example = "11")
+            @RequestParam int sellerId
+    ) {
+        productService.deleteProduct(id, sellerId);
+        return ResponseEntity.ok(
+                ApiResponseDto.success(HttpStatus.OK.value(), "success", null)
+        );
     }
 }

@@ -22,6 +22,7 @@ public class QuickReplyService {
     private final ChatMessageRepository chatMessageRepository;
     private final QuickReplyRepository quickReplyRepository;
 
+    // 자주 쓰는 문구 추가
     @Transactional
     public QuickReplyAddResponseDto addQuikReply(Integer messageId){
         Integer userId = QuickReplyUtils.currentUserIdOrThrow();
@@ -73,6 +74,7 @@ public class QuickReplyService {
         }
     }
 
+    // 자주 쓰는 문구 조회
     @Transactional(readOnly = true)
     public List<QuickReplyItemResponseDto> listMine() {
         Integer userId = QuickReplyUtils.currentUserIdOrThrow();
@@ -82,6 +84,7 @@ public class QuickReplyService {
                 .toList();
     }
 
+    // 자주 쓰는 문구 삭제
     @Transactional
     public void deleteMine(Integer id) {
         Integer userId = QuickReplyUtils.currentUserIdOrThrow();

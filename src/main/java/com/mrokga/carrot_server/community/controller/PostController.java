@@ -45,7 +45,7 @@ public class PostController {
         return Integer.valueOf(auth.getName());
     }
 
-    // ✅ 2-Step 방식 (JSON-only)
+    // 2-Step 방식 (JSON-only)
     @PostMapping
     @Operation(summary = "게시글 작성", description = "사용자가 새로운 게시글을 작성합니다.")
     public ResponseEntity<ApiResponseDto<?>> createPost(@RequestBody CreatePostRequestDto dto){
@@ -54,7 +54,7 @@ public class PostController {
         return ResponseEntity.ok(ApiResponseDto.success(HttpStatus.OK.value(), "success",null));
     }
 
-    // ✅ 1-Step 방식 (멀티파트)
+    // 1-Step 방식 (멀티파트)
     @PostMapping(value = "/multipart", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "게시글 작성(멀티파트: JSON + 이미지 파일)",
