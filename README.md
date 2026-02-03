@@ -4,6 +4,7 @@
 
 - 배포 URL : https://d1elknx4d22bup.cloudfront.net (점검 중)
 - 배포 서버 : http://3.35.219.116:8080 (점검 중)
+- 시연 영상 : https://youtu.be/Ou8EJn5kFhk
 
 <br>
 
