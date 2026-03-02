@@ -8,10 +8,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/payment")
+@RequestMapping("/payment")
 @Tag(name = "Payment API", description = "결제 관련 API")
 @Slf4j
 public class PaymentController {
@@ -26,10 +27,12 @@ public class PaymentController {
 
     // 결제 성공
     @GetMapping("/kakao/success")
-    public KakaoApproveResponse kakaoSuccess(@RequestParam("transactionId") Integer transactionId,
-                                             @RequestParam("tid") String tid,
-                                             @RequestParam("pg_token") String pgToken) {
-        return paymentService.kakaoApprovePayment(transactionId, tid, pgToken);
+    public RedirectView kakaoSuccess(@RequestParam("transactionId") Integer transactionId,
+                                     @RequestParam("pg_token") String pgToken) {
+
+        paymentService.kakaoApprovePayment(transactionId, pgToken);
+
+        return new RedirectView("http://localhost:3000/payment/success?transactionId=" + transactionId);
     }
 
     // 결제 취소

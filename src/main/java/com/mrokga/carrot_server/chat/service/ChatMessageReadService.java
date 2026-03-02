@@ -18,9 +18,13 @@ public class ChatMessageReadService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
 
+    // 읽음 처리
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markAsRead(Integer roomId, Integer messageId, Integer userId) {
-        // 권한/검증
+        /* 권한 확인
+        1. 다른 방 메시지 읽음 처리 불가
+        2. 해당 채팅방 참여자 여부 확인
+         */
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
 

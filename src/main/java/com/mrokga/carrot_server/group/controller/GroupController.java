@@ -201,14 +201,16 @@ public class GroupController {
 
     @Operation(summary = "가입 요청 목록", description = "OWNER/MANAGER만 조회 가능. status=PENDING/APPROVED/REJECTED")
     @GetMapping("/{id}/requests")
-    public Page<GroupJoinRequest> requests(@PathVariable Integer id,
-                                           @RequestParam(defaultValue = "PENDING") String status,
-                                           @ParameterObject @PageableDefault(size = 20) Pageable pg) {
+    public Page<GroupJoinRequestResponse> requests(@PathVariable Integer id,
+                                                   @RequestParam(defaultValue = "PENDING") String status,
+                                                   @ParameterObject @PageableDefault(size = 20) Pageable pg) {
+
         var actor = membershipRepository.findByGroupIdAndUserId(id, me())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (actor.getRole() == GroupMembership.Role.MEMBER)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        return joinRequestRepository.findByGroupIdAndStatus(id, GroupJoinRequest.Status.valueOf(status), pg);
+
+        return groupService.listJoinRequests(id, GroupJoinRequest.Status.valueOf(status), pg);
     }
 
     @Operation(summary = "가입 승인", description = "OWNER/MANAGER 권한 필요")

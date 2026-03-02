@@ -39,6 +39,7 @@ public class ChatRoomService {
         return dto;
     }
 
+    // 채팅방 생성
     @Transactional
     public ChatRoomResponseDto createOrGetRoom(Integer me, ChatRoomRequestDto dto){
         Product product = productRepository.findById(dto.getProductId())
@@ -48,7 +49,7 @@ public class ChatRoomService {
         final User seller;
         final User buyer;
 
-        // 판매자 선톡
+        // 1. 판매자 선톡
         if(Objects.equals(me, ownerId)){
             if(dto.getBuyerId() == null){
                 throw new IllegalArgumentException("구매자 ID가 필요합니다.(판매자 선톡)");
@@ -58,7 +59,7 @@ public class ChatRoomService {
             buyer = userRepository.findById(dto.getBuyerId())
                     .orElseThrow(() -> new IllegalArgumentException("구매자 없음"));
         }
-        // 구매자 선톡
+        // 2. 구매자 선톡
         else{
             buyer = userRepository.findById(me)
                     .orElseThrow(() -> new IllegalArgumentException("구매자 없음"));
@@ -101,13 +102,17 @@ public class ChatRoomService {
         }
     }
 
+    // 채팅방 리스트 조회
     @Transactional(readOnly = true)
     public List<ChatRoomResponseDto> getRoomByUser(Integer userId){
         List<ChatRoom> rooms = chatRoomRepository.findByBuyer_IdOrSeller_Id(userId, userId);
         return rooms.stream().map(room -> {
             ChatRoomResponseDto dto = toResponse(room); // 기존 필드 세팅
 
-            // 방의 마지막 보이는 메시지 (커트라인 이후)
+            /*
+             해당 채팅방의 마지막 메시지 (커트라인 이후)
+             => UI에 각 채팅방마다 마지막 메세지 요약 후 미리보기로 보여주기 위해
+             */
             chatRoomRepository.findLastVisibleMessageId(room.getId(), userId)
                     .ifPresent(lastId -> {
                         chatMessageRepository.findById(lastId).ifPresent(last -> {
@@ -116,13 +121,17 @@ public class ChatRoomService {
                             dto.setLastMessageAt(last.getCreatedAt());
                             dto.setLastMessagePreview(
                                     last.getMessageType() == MessageType.TEXT
-                                            ? abbreviate(last.getMessage(), 50)
+                                            ? abbreviate(last.getMessage())
                                             : "[이미지]"
                             );
                         });
                     });
 
-            // 내가 보낸 마지막 메시지 id (커트라인 이후 기준)
+            /*
+             내가 보낸 마지막 메시지 id (내 커트라인 이후 기준)
+             채팅방을 삭제하지 않았으면 커트라인 0, 삭제한 적 있다면 삭제 지점 메세지 반환
+             (내가 마지막으로 보내고 내가 채팅방을 삭제한 경우 등 다양한 경우 대비해서)
+             */
             Integer cutoff = chatRoomRepository.getDeleteCutoffForUser(room.getId(), userId);
             int cutoffId = cutoff == null ? 0 : cutoff;
             Integer lastMyMessageId = chatMessageRepository.findAfterCutoff(room.getId(), cutoffId).stream()
@@ -136,6 +145,7 @@ public class ChatRoomService {
                     ? room.getSellerLastReadMessageId()
                     : room.getBuyerLastReadMessageId();
 
+            // 마지막 메세지 읽음 여부 표시
             boolean seen = (lastMyMessageId != null) && (opponentRead != null) && (opponentRead >= lastMyMessageId);
             dto.setLastMessageSeen(seen);
 
@@ -145,23 +155,30 @@ public class ChatRoomService {
 
     /**
      * 채팅방 소프트 삭제 (내 쪽에서만 삭제)
-     * - DB에서 실제로 지우지 않고 내 커트라인을 마지막 메시지 id로 설정
+     * - DB에서 실제로 지우지 않고 내가 삭제한 지점(커트라인)을 마지막 메시지 id로 설정
      * - 이후 이 방은 내 목록에서 안 보이고, 나중에 새 메시지가 오면 다시 등장
      */
     @Transactional
     public void deleteRoom(Integer roomId, Integer userId) {
+        //채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
 
         Integer buyerId = chatRoom.getBuyer().getId();
         Integer sellerId = chatRoom.getSeller().getId();
 
+        // 권한 확인
         if (!Objects.equals(userId, buyerId) && !Objects.equals(userId, sellerId)) {
             throw new AccessDeniedException("채팅방 삭제 권한이 없습니다.");
         }
 
+        // 마지막 메세지 조회
         int lastMsgId = chatMessageRepository.findTopIdByRoomId(roomId).orElse(0);
 
+        /* 해당 지점까지는 읽었다는 것을 설정 후, 해당 지점을 삭제 지점으로 설정
+        1. 내가 buyer일 경우
+        2. 내가 seller일 경우
+         */
         if (Objects.equals(userId, buyerId)) {
             chatRoomRepository.markBuyerDeleted(roomId, buyerId, lastMsgId);
             chatRoomRepository.bumpBuyerLastRead(roomId, lastMsgId);
@@ -171,8 +188,9 @@ public class ChatRoomService {
         }
     }
 
-    private String abbreviate(String s, int max) {
+    // 메세지 요약 (50자 이상일 경우 이후 내용 ...으로)
+    private String abbreviate(String s) {
         if (s == null) return null;
-        return s.length() <= max ? s : s.substring(0, max) + "…";
+        return s.length() <= 50 ? s : s.substring(0, 50) + "…";
     }
 }

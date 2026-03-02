@@ -248,6 +248,23 @@ public class GroupService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public Page<GroupJoinRequestResponse> listJoinRequests(Integer groupId,
+                                                           GroupJoinRequest.Status status, Pageable pg) {
+
+        return joinRequestRepository
+                .findByGroupIdAndStatus(groupId, status, pg)
+                .map(req -> GroupJoinRequestResponse.builder()
+                        .id(req.getId())
+                        .groupId(req.getGroup().getId())
+                        .userId(req.getUser().getId())
+                        .userNickname(req.getUser().getNickname())
+                        .status(req.getStatus().name())
+                        .message(req.getMessage())
+                        .createdAt(req.getCreatedAt())
+                        .build());
+    }
+
 
 
 }

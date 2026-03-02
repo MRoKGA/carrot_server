@@ -28,7 +28,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/actuator/health", "/actuator/info",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/theTest", "/__test-error",
-                                "/api/**"
+                                "/api/**",
+                                "/payment/kakao/success",
+                                "/payment/kakao/cancel",
+                                "/payment/kakao/fail"
                                 ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 추가
                         .anyRequest().authenticated()

@@ -25,7 +25,7 @@ public class ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageReadService chatMessageReadService;
-    private final SimpMessageSendingOperations messagingTemplate; // ✅ 실시간 전송 기능 추가
+    private final SimpMessageSendingOperations messagingTemplate; // 실시간 전송 기능 추가
 
     // 메세지 객체 DTO 형태로 변환 메소드
     private MessageResponseDto toResponse(ChatMessage message){
@@ -37,7 +37,11 @@ public class ChatMessageService {
         dto.setMessage(message.getMessage());
         dto.setCreatedAt(message.getCreatedAt());
 
-        // 부모(답장 대상) 있으면 요약 채우기
+        /* 부모(답장 대상) 있으면 요약 채우기
+            예를 들어 상대방 메세지에 대한 답장 메세지일 경우,
+            상대방 메세지(부모 메세지) 요약칸이 답장 메시지(자식 메세지) 위에 있는
+            UI를 위한 부모 메세지 요약 속성.
+         */
         ChatMessage p = message.getParentMessage();
         if (p != null) {
             dto.setReplyToMessageId(p.getId());
@@ -52,19 +56,19 @@ public class ChatMessageService {
         return dto;
     }
 
-    // 답장 메세지, 부모 메세지 미리보기 50자
+    // 답장 메세지, 부모 메세지 미리보기 요약 50자
     private String abbreviate(String s, int max) {
         if (s == null) return null;
         return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 
-    // ✅ 기존 sendMessage: REST API용 (메시지 저장만 수행)
+    // 기존 sendMessage: REST API용 (메시지 저장만 수행)
     @Transactional
     public MessageResponseDto sendMessage(MessageRequestDto dto, Integer senderId){
         return saveMessage(dto, senderId);
     }
 
-    // ✅ 새로운 sendMessageAndBroadcast: WebSocket 전용 (저장 + 실시간 전송)
+    // 새로운 sendMessageAndBroadcast: WebSocket 전용 (저장 + 실시간 전송)
     @Transactional
     public void sendMessageAndBroadcast(MessageRequestDto dto, Integer senderId){
         MessageResponseDto response = saveMessage(dto, senderId);
@@ -109,7 +113,6 @@ public class ChatMessageService {
             if (!parent.getChatRoom().getId().equals(room.getId())) {
                 throw new IllegalArgumentException("다른 채팅방의 메시지에는 답장할 수 없습니다.");
             }
-            // (선택) parent가 삭제되었으면 금지할지 허용할지 정책 결정
         }
 
         ChatMessage message = chatMessageRepository.save(
@@ -139,21 +142,29 @@ public class ChatMessageService {
             throw new AccessDeniedException("채팅방 메세지 조회 권한이 없습니다.");
         }
 
-        // 내 커트라인 가져오기 (없으면 0)
+        /* 내 삭제 지점 가져오기 (없으면 0)
+         => 즉, 이전에 채팅방을 삭제한 적이 있다면 삭제 지점 이후의 메세지 부터 보여줌.
+            삭제한 적 없으면 커트라인은 0으로 전체 메세지를 다 보여줌.
+         */
         Integer cutoff = chatRoomRepository.getDeleteCutoffForUser(roomId, requesterId);
         int cutoffId = cutoff == null ? 0 : cutoff;
 
-        // ✅ 커트라인 이후 메시지만 조회
+        // 삭제 지점 이후 메시지만 조회
         List<ChatMessage> messages = chatMessageRepository.findAfterCutoff(roomId, cutoffId);
 
-        // ===== 여기서 읽음 처리 =====
+        /* ===== 여기서 읽음 처리 =====
+           조회했으면 당연히 읽음 처리
+         */
         if (!messages.isEmpty()) {
             int lastMessageId = messages.get(messages.size() - 1).getId();
-            // 이거 markAsRead 서비스 호출
+            // markAsRead 서비스 호출
             chatMessageReadService.markAsRead(room.getId(), lastMessageId, requesterId);
         }
 
-        // ====== 마지막 메시지 '읽음' 판정 ======
+        /* ====== '마지막' 메세지 읽음 표시 ======
+            UI에 마지막 메세지 읽음 표시 띄울 때, 내 메세지를 상대가 읽었을 때만 표시.
+            내가 상대 메세지를 읽었을 때 굳이 읽음 표시를 띄울 필요가 없기 때문.
+         */
         Integer opponentReadId = Objects.equals(requesterId, buyerId)
                 ? room.getSellerLastReadMessageId() : room.getBuyerLastReadMessageId();
 
@@ -161,7 +172,7 @@ public class ChatMessageService {
         Integer lastMsgId = (lastMsg != null) ? lastMsg.getId() : null;
         boolean lastIsMine = (lastMsg != null) && Objects.equals(lastMsg.getUser().getId(), requesterId);
 
-        // 마지막 메시지가 내가 보낸 거라면, 상대 포인터가 그 ID 이상인지로 판정
+        // 마지막 메시지가 내가 보낸 거라면, 상대 메세지 읽음 포인터가 그 ID 이상인지로 판정
         boolean lastMsgReadByOpponent = lastIsMine && opponentReadId != null
                                          && lastMsgId != null && opponentReadId >= lastMsgId;
 
@@ -172,7 +183,7 @@ public class ChatMessageService {
         return messages.stream().map(m -> {
             MessageResponseDto dto = toResponse(m);
 
-            // 프론트 버블 정렬/색 구분에 유용
+            // 프론트 채팅 버블 정렬/색 구분에 유용
             boolean mine = Objects.equals(m.getUser().getId(), requesterId);
             dto.setMine(mine);
 
@@ -185,10 +196,11 @@ public class ChatMessageService {
     }
 
 
+    //시스템 메세지 전송
     @Transactional
     public ChatMessage sendSystemMessage(ChatRoom room, String content) {
 
-        // ✅ 문자열 리터럴 "System" 사용
+        // 문자열 리터럴 "System" 사용
         User systemUser = userRepository.findByNickname("SYSTEM");
         if (systemUser == null) {
             throw new RuntimeException("시스템 계정을 찾을 수 없습니다.");
